@@ -1,4 +1,37 @@
-<!-- Calculateur Acheter ou Louer V2 (design v5) — MoneyRadar -->
+<!-- Calculateur Acheter ou Louer V8 (design v5 + mise en page aol6) — MoneyRadar — 23/10/2026
+     V8 : le bien équivalent vient des données publiques par commune (communes-immo.json, 3 400 communes + repli par
+     département) : prix au m² = ventes réelles des 12 derniers mois (DVF, data.gouv « Statistiques DVF »), loyer au m² =
+     carte des loyers ANIL 2025 (T1-T2 37 m², T3+ 72 m², maison 92 m², charges comprises → × 0,88 appartement, × 0,94 maison).
+     Questions : situation, ville (autocomplétion), surface, type ; loyer pour un locataire. Prix = surface × prix/m².
+     Audit du 23/10/2026 : frais du crédit (1,2 % du prêt) et indemnité de remboursement anticipé (min 6 mois d'intérêts, 3 %
+     du capital restant) ajoutés ; taxe foncière 1 à 2 mois de loyer selon le prix au m² ; entretien plancher 8 €/m² ;
+     fourchette prudent / dynamique affichée sous la réponse.
+     Le fichier JSON est chargé au premier clic dans le champ ville (attribut data-communes de #mric-tool) ; les données et les
+     images du hero sont servies par jsDelivr depuis ce dépôt GitHub (dossiers communes-immo/ et hero-acheter-ou-louer/).
+     Après une mise à jour des données : changer data-communes-version pour contourner le cache.
+     V7 : on part de la situation (locataire / propriétaire / hébergé). Locataire et hébergé : loyer + zone → prix du bien
+     équivalent = loyer × 12 ÷ rendement locatif de la zone (Paris 4 %, grande ville 5 %, ville moyenne 6 %, petite ville 7,5 % ;
+     sources Meilleurtaux / CPIM 2026). Propriétaire : prix + zone → loyer équivalent. Les valeurs déduites sont affichées et
+     modifiables dans « Ajuster ».
+     V6 : trois questions dans le hero (prix, loyer équivalent, apport facultatif), une phrase de réponse (« Vous partez avant
+     N ans ? Louez. Plus longtemps ? Achetez. »), une frise Louer / Acheter avec un point « Vous » à glisser, trois raisons
+     chiffrées, un tiroir « Ajuster les hypothèses ». Rien ne s'affiche avant la saisie. Détail (graphique, mensualités, tableau)
+     en bas. Moteur de calcul de la V3 (frise et bascule calculées sur 30 ans).
+     V5 : l'horizon n'est plus demandé : le verdict est le point de bascule (« acheter devient plus intéressant après N ans »),
+     un curseur « Et si je reste… » teste n'importe quelle durée. Étape 1 = 3 questions (situation, prix, loyer équivalent, apport
+     facultatif), étapes 2 et 3 facultatives (valeurs par défaut), préréglages prudent / moyen / dynamique pour la hausse du bien
+     et le rendement de l'épargne.
+     V4 : mise en page inspirée du score financier : formulaire en 3 étapes (lignes « libellé | valeur »), carte de verdict
+     mise à jour à chaque saisie (collante sur ordinateur, barre en bas sur mobile), détail en dessous (graphique, mensualités,
+     sensibilité, tableau repliable). Moteur de calcul identique à la V3.
+     Fond du hero : hero-acheter-ou-louer/fond-hero-desktop.webp (2400×1350, 62 Ko) et fond-hero-mobile.webp (1080×1013, 40 Ko),
+     générés le 23/10/2026 (gpt-image-2, source fond-hero-2.png). Avant mise en ligne : les téléverser dans WordPress et remplacer
+     les deux URL relatives du CSS (.mric-hero et sa règle mobile) par les URL wp-content/uploads.
+     V3 : horizon de détention séparé de la durée du prêt (verdict à l'horizon, point de bascule), frais de revente,
+     charges de copropriété, charges et assurance habitation indexées (les deux côtés paient l'assurance), rendement net,
+     notaire calculé d'après le prix et le type de bien, bloc « chaque mois », sensibilité (épargne / hausse du bien),
+     repère « Vous » sur le graphique. Payload v3 : inputs.horizon, revente, copro, inflation, typeBien ;
+     results.horizon, coutMensuelProprio, coutMensuelLocataire, interetsTotaux (patrimoines = à l'horizon). -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
@@ -1527,72 +1560,559 @@
 .v5 .mric-cash-toggle input { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex: 0 0 18px; }
 .v5.mric-cash .mric-field-credit { display: none; }
 
+/* ===== v3 : mensualités, sensibilité, horizon ===== */
+.v5 .mric-month { margin: 0; padding: 20px 22px; border-top: 1px solid var(--border-soft); display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+.v5 .mric-month-title { grid-column: 1 / -1; font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--fg-4); }
+.v5 .mric-month-col .k { font-size: 12px; font-weight: 700; color: var(--fg-3); }
+.v5 .mric-month-col .big { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin: 2px 0 4px; font-variant-numeric: tabular-nums; }
+.v5 .mric-month-col .big.mric-teal { color: var(--accent); }
+.v5 .mric-month-col .big.mric-orange { color: var(--orange); }
+.v5 .mric-month-col .det { font-size: 12px; color: var(--fg-4); line-height: 1.5; }
+.v5 .mric-month-foot { grid-column: 1 / -1; font-size: 13px; color: var(--fg-2); line-height: 1.5; padding-top: 6px; border-top: 1px dashed var(--border-soft); }
+.v5 .mric-month-foot strong { color: var(--fg); }
+.v5 .mric-chart-note { font-size: 11px; color: var(--fg-4); font-weight: 600; text-align: right; }
+.v5 .mric-chart-header { flex-wrap: wrap; gap: 4px 12px; }
+.v5 .mric-sens { margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--border-soft); }
+.v5 .mric-sens-title { font-size: 11px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-4); }
+.v5 .mric-sens-sub { font-size: 13px; color: var(--fg-3); margin: 6px 0 14px; line-height: 1.5; }
+.v5 .mric-sens-lbl { font-size: 12px; font-weight: 700; color: var(--fg-2); margin: 10px 0 8px; }
+.v5 .mric-sens-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.v5 .mric-chip { padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 10px; background: transparent; cursor: pointer; text-align: left; font-family: inherit; color: var(--fg-2); transition: border-color .15s; }
+.v5 .mric-chip:hover { border-color: var(--fg-4); }
+.v5 .mric-chip.on { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,245,192,0.12); }
+.v5 .mric-chip .k { display: block; font-size: 11px; font-weight: 700; color: var(--fg-4); letter-spacing: .06em; }
+.v5 .mric-chip .v { display: block; font-size: 14px; font-weight: 800; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.v5 .mric-chip .v.mric-teal { color: var(--accent); }
+.v5 .mric-chip .v.mric-orange { color: var(--orange); }
+.v5 .mric-table tr.mric-row-horizon td { font-weight: 700; color: var(--fg); background: rgba(255,255,255,0.035); }
+.v5 .mric-table tr.mric-row-horizon.mric-row-bascule td { color: var(--accent); }
+@container (max-width: 540px) {
+  .v5 .mric-month { grid-template-columns: 1fr; }
+  .v5 .mric-sens-row { grid-template-columns: 1fr; }
+}
+
+/* ===== AOL v4 : mise en page inspirée du score financier (étapes, lignes « libellé | valeur », verdict en direct) ===== */
+.v5.aol4 { container-name:aol; --surface:#0F1626; --line:rgba(255,255,255,.07); --line-2:rgba(255,255,255,.11); --accent-ink:#0A0E18; --vc:var(--accent); }
+.v5.aol4[data-theme="light"] { --surface:#FFFFFF; --line:#ECEEE7; --line-2:#E2E4DC; --accent-ink:#FFFFFF; }
+.v5.aol4 .mric-hero { position:relative; overflow:hidden; text-align:left; padding:76px 24px 60px; background:#0A0E18 url('https://cdn.jsdelivr.net/gh/gtm-innovation/simulateur-acheter-ou-louer@main/hero-acheter-ou-louer/fond-hero-desktop.webp') right 40% / cover no-repeat; }
+.v5.aol4 .mric-hero::before { content:""; position:absolute; inset:0; background:linear-gradient(90deg,rgba(10,14,24,.92) 0%,rgba(10,14,24,.78) 42%,rgba(10,14,24,.25) 72%,rgba(10,14,24,.05) 100%); pointer-events:none; }
+.v5.aol4 .mric-hero::after { content:""; position:absolute; left:0; right:0; bottom:0; height:120px; background:linear-gradient(180deg,rgba(10,14,24,0),#0A0E18); pointer-events:none; }
+.v5.aol4 .mric-hero > .inn { position:relative; z-index:1; }
+.v5.aol4 .aol-hero-grid { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:44px; align-items:center; }
+.v5.aol4 .aol-eyebrow { display:flex; align-items:center; gap:10px; margin:0 0 18px; font-size:12px; font-weight:750; letter-spacing:.14em; text-transform:uppercase; color:var(--fg-3); }
+.v5.aol4 .aol-eyebrow::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--accent); flex:none; }
+.v5.aol4 .mric-hero h1 { text-align:left; margin:0; max-width:none; font-size:clamp(40px,6vw,66px); line-height:.98; letter-spacing:-.05em; }
+.v5.aol4 .aol-lede { margin:20px 0 26px; font-size:17px; line-height:1.6; color:var(--fg-3); max-width:560px; }
+.v5.aol4 .aol-lede b { color:var(--fg); font-weight:650; }
+.v5.aol4 .aol-cta-row { display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.v5.aol4 .aol-cta { display:inline-flex; align-items:center; gap:10px; height:52px; padding:0 24px; border-radius:12px; background:var(--accent); color:var(--accent-ink); font-weight:800; font-size:15px; text-decoration:none; }
+.v5.aol4 .aol-cta:hover { filter:brightness(1.08); }
+.v5.aol4 .aol-cta svg { width:18px; height:18px; }
+.v5.aol4 .aol-cta-note { font-size:13.5px; color:var(--fg-4); line-height:1.4; }
+/* carte du hero : reflet du verdict en cours */
+.v5.aol4 .aol-hero-card { position:relative; padding:22px 24px 20px; border-radius:20px; background:linear-gradient(150deg,#16336F 0%,#0F1E42 55%,#0B1226 100%); border:1px solid rgba(255,255,255,.14); box-shadow:0 34px 70px -34px rgba(0,0,0,.9); transform:rotate(-2deg); color:#fff; }
+.v5.aol4 .aol-hero-card .k { display:flex; justify-content:space-between; font-size:10px; font-weight:750; letter-spacing:.1em; text-transform:uppercase; color:rgba(255,255,255,.7); }
+.v5.aol4 .aol-hero-card .e { margin-top:18px; font-size:12.5px; color:rgba(255,255,255,.75); }
+.v5.aol4 .aol-hero-card .v { margin:4px 0 6px; font-size:34px; font-weight:850; letter-spacing:-.04em; line-height:1; color:var(--vc); }
+.v5.aol4 .aol-hero-card .s { font-size:13px; color:rgba(255,255,255,.85); line-height:1.45; }
+.v5.aol4 .aol-hero-card .b { margin-top:16px; display:flex; flex-direction:column; gap:9px; }
+.v5.aol4 .aol-hero-card .b div { display:flex; align-items:center; gap:10px; font-size:12px; color:rgba(255,255,255,.75); }
+.v5.aol4 .aol-hero-card .b span { width:92px; flex:none; }
+.v5.aol4 .aol-hero-card .b i { display:block; height:8px; border-radius:6px; background:var(--teal); flex:1; transform-origin:left; }
+.v5.aol4 .aol-hero-card .b i.o { background:var(--orange); }
+.v5.aol4 .aol-hero-card .b em { font-style:normal; font-weight:750; color:#fff; width:64px; text-align:right; font-variant-numeric:tabular-nums; }
+.v5.aol4 .aol-hero-card .f { margin-top:16px; padding-top:12px; border-top:1px solid rgba(255,255,255,.14); font-size:12px; color:rgba(255,255,255,.75); display:flex; justify-content:space-between; }
+.v5.aol4 .aol-hero-card .f b { color:#fff; }
+/* ---- outil ---- */
+.v5.aol4 .aol-tool { padding:8px 24px 48px; scroll-margin-top:90px; }
+.v5.aol4 .aol-work { display:grid; grid-template-columns:minmax(0,1fr); gap:24px; align-items:start; max-width:1180px; margin:0 auto; }
+.v5.aol4 .aol-form { background:var(--surface); border:1px solid var(--line-2); border-radius:20px; overflow:hidden; container-type:inline-size; container-name:form; }
+@container form (max-width:680px) {
+  .v5.aol4 .aol-form .aol-fields { grid-template-columns:minmax(0,1fr); gap:0; }
+  .v5.aol4 .aol-form .aol-row > label, .v5.aol4 .aol-form .aol-row > .lb { padding-right:8px; }
+}
+@container form (max-width:480px) {
+  .v5.aol4 .aol-form .aol-row:has(.aol-seg) { flex-direction:column; align-items:stretch; gap:6px; padding:10px 0 12px; }
+  .v5.aol4 .aol-form .aol-seg { width:100%; }
+  .v5.aol4 .aol-form .aol-seg button { flex:1; padding:8px 6px; font-size:13px; }
+}
+.v5.aol4 .aol-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:22px 28px 0; }
+.v5.aol4 .aol-step { display:flex; flex-direction:column; gap:8px; padding:0 0 4px; border:0; background:none; text-align:left; cursor:pointer; color:var(--fg-4); font:inherit; }
+.v5.aol4 .aol-step .bar { height:4px; border-radius:9px; background:var(--line-2); transition:background .3s; }
+.v5.aol4 .aol-step.done .bar, .v5.aol4 .aol-step[aria-selected="true"] .bar { background:var(--accent); }
+.v5.aol4 .aol-step .lbl { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:650; }
+.v5.aol4 .aol-step .n { color:var(--fg-4); }
+.v5.aol4 .aol-step[aria-selected="true"] .lbl { color:var(--fg); font-weight:750; }
+.v5.aol4 .aol-step[aria-selected="true"] .n { color:var(--accent); }
+.v5.aol4 .aol-step:focus-visible { outline:2px solid var(--accent); outline-offset:4px; border-radius:4px; }
+.v5.aol4 .aol-panel { padding:28px 28px 22px; }
+.v5.aol4 .aol-panel[hidden] { display:none; }
+.v5.aol4 .aol-panel h2 { margin:0; font-size:28px; line-height:1.15; letter-spacing:-.04em; font-weight:800; color:var(--fg); }
+.v5.aol4 .aol-desc { margin:8px 0 0; font-size:14.5px; line-height:1.55; color:var(--fg-3); }
+.v5.aol4 .aol-desc b { color:var(--fg); }
+.v5.aol4 .aol-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 40px; margin-top:22px; border-top:1px solid var(--line-2); }
+.v5.aol4 .aol-fields > .full { grid-column:1 / -1; }
+.v5.aol4 .aol-sub { grid-column:1 / -1; padding:20px 0 2px; font-size:11.5px; font-weight:750; letter-spacing:.12em; text-transform:uppercase; color:var(--fg-4); }
+.v5.aol4 .aol-row { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:62px; border-bottom:1px solid var(--line); transition:border-color .2s; }
+.v5.aol4 .aol-row:focus-within { border-bottom:1.5px solid var(--accent); }
+.v5.aol4 .aol-row > label, .v5.aol4 .aol-row > .lb { display:flex; flex-direction:column; gap:2px; padding:9px 0; font-size:15px; color:var(--fg-2); min-width:0; }
+.v5.aol4 .aol-row small { font-size:12.5px; color:var(--fg-4); font-weight:500; line-height:1.4; }
+.v5.aol4 .aol-row:focus-within > label { color:var(--fg); font-weight:600; }
+.v5.aol4 .aol-val { display:flex; align-items:baseline; gap:6px; flex:none; white-space:nowrap; }
+.v5.aol4 .aol-val input { width:112px; padding:6px 0; border:0; border-bottom:1px solid transparent; background:transparent; color:var(--fg); font:inherit; font-size:20px; font-weight:750; text-align:right; outline:none; font-variant-numeric:tabular-nums; }
+.v5.aol4 .aol-val input::placeholder { color:var(--fg-4); font-weight:600; }
+.v5.aol4 .aol-val span { font-size:14px; color:var(--fg-4); font-weight:500; }
+.v5.aol4 .aol-row select { flex:none; max-width:60%; border:0; background:transparent; color:var(--fg); font:inherit; font-size:16px; font-weight:700; text-align:right; outline:none; cursor:pointer; appearance:none; -webkit-appearance:none; padding-right:18px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238C9AB5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right center; background-size:14px; }
+.v5.aol4 .aol-row select option { color:#111; }
+.v5.aol4 .aol-seg { display:inline-flex; flex:none; padding:3px; border:1px solid var(--line-2); border-radius:10px; gap:2px; }
+.v5.aol4 .aol-seg button { border:0; background:none; color:var(--fg-3); font:inherit; font-size:14px; font-weight:650; padding:7px 14px; border-radius:8px; cursor:pointer; transition:background .15s,color .15s; }
+.v5.aol4 .aol-seg button.on { background:var(--accent); color:var(--accent-ink); }
+.v5.aol4.mric-cash .aol-credit { display:none; }
+.v5.aol4 .aol-nav { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 28px; border-top:1px solid var(--line); background:rgba(255,255,255,.025); }
+.v5.aol4 .aol-back { border:0; background:none; color:var(--fg-3); font:inherit; font-size:14px; font-weight:650; min-height:48px; padding:0 6px; cursor:pointer; }
+.v5.aol4 .aol-back:hover { color:var(--fg); }
+.v5.aol4 .aol-back[aria-hidden="true"] { visibility:hidden; }
+.v5.aol4 .aol-nav-cap { font-size:13px; color:var(--fg-4); }
+.v5.aol4 .aol-next { display:inline-flex; align-items:center; justify-content:center; gap:12px; min-height:50px; padding:0 22px; border:0; border-radius:12px; background:var(--accent); color:var(--accent-ink); font:inherit; font-size:15px; font-weight:800; cursor:pointer; white-space:nowrap; transition:filter .2s; }
+.v5.aol4 .aol-next:hover { filter:brightness(1.08); }
+.v5.aol4 .aol-next svg { width:16px; height:16px; }
+/* ---- carte verdict ---- */
+.v5.aol4 .aol-card { position:relative; overflow:hidden; padding:20px 22px 18px; border-radius:20px; background:color-mix(in srgb,var(--vc) 10%,#0A0E18); border:1px solid color-mix(in srgb,var(--vc) 35%,transparent); transition:background .5s,border-color .5s; scroll-margin-top:90px; }
+.v5.aol4 .aol-card::before { content:""; position:absolute; left:0; right:0; top:0; height:5px; background:var(--vc); transition:background .5s; }
+.v5.aol4 .aol-card-head { display:flex; justify-content:space-between; align-items:center; margin:2px 0 18px; }
+.v5.aol4 .aol-brand { display:flex; align-items:center; gap:8px; min-width:0; }
+.v5.aol4 .aol-brand img { display:block; height:17px; width:auto; }
+.v5.aol4 .aol-brand .k { padding-left:8px; border-left:1px solid rgba(255,255,255,.18); font-size:10px; font-weight:750; letter-spacing:.08em; text-transform:uppercase; color:var(--fg-2); white-space:nowrap; }
+.v5.aol4 .aol-live { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--accent); white-space:nowrap; }
+.v5.aol4 .aol-live::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.v5.aol4 .aol-card-eyebrow { font-size:12.5px; color:var(--fg-3); }
+.v5.aol4 .aol-card-verdict { margin:4px 0 8px; font-size:38px; font-weight:850; letter-spacing:-.045em; line-height:1; color:var(--vc); transition:color .4s; }
+.v5.aol4 .aol-card-sub { font-size:13.5px; line-height:1.45; color:var(--fg-2); }
+.v5.aol4 .aol-card-sub b { color:var(--fg); }
+.v5.aol4 .aol-bars { margin:18px 0 8px; display:flex; flex-direction:column; gap:11px; }
+.v5.aol4 .aol-bar .t { display:flex; justify-content:space-between; font-size:12.5px; color:var(--fg-3); margin-bottom:5px; }
+.v5.aol4 .aol-bar .t b { color:var(--fg); font-variant-numeric:tabular-nums; }
+.v5.aol4 .aol-bar .tr { height:8px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden; }
+.v5.aol4 .aol-bar .tr i { display:block; height:100%; border-radius:6px; background:var(--accent); transition:width .5s; }
+.v5.aol4 .aol-bar.loc .tr i { background:var(--orange); }
+.v5.aol4 .aol-kv { display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:10px 0; border-top:1px solid rgba(255,255,255,.08); font-size:13px; color:var(--fg-3); }
+.v5.aol4 .aol-kv b { color:var(--fg); font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; }
+.v5.aol4 .aol-kv b.o { color:var(--orange); }
+.v5.aol4 .aol-kv b.t { color:var(--accent); }
+.v5.aol4 .aol-card-btn { display:flex; justify-content:center; align-items:center; gap:8px; width:100%; min-height:48px; margin-top:12px; border:0; border-radius:12px; background:var(--accent); color:var(--accent-ink); font:inherit; font-size:14.5px; font-weight:800; cursor:pointer; text-decoration:none; transition:filter .2s; }
+.v5.aol4 .aol-card-btn:hover { filter:brightness(1.08); }
+.v5.aol4 .aol-card-btn svg { width:17px; height:17px; }
+.v5.aol4 .aol-card-note { margin:10px 0 0; font-size:12px; line-height:1.45; color:var(--fg-4); }
+/* ---- barre mobile ---- */
+.v5.aol4 .aol-mini { display:none; }
+/* ---- détail ---- */
+.v5.aol4 .aol-detail { padding:28px 24px 56px; border-top:1px solid var(--border-soft); scroll-margin-top:80px; }
+.v5.aol4 .aol-detail .inn { max-width:1180px; }
+.v5.aol4 .aol-h2 { margin:0; font-size:34px; line-height:1.12; letter-spacing:-.045em; font-weight:800; color:var(--fg); }
+.v5.aol4 .aol-intro { margin:10px 0 0; font-size:15px; line-height:1.55; color:var(--fg-3); max-width:640px; }
+.v5.aol4 .aol-detail .qblock { margin-top:26px; }
+.v5.aol4 .aol-detail .mric-chart-wrap { margin-top:28px; }
+.v5.aol4 .aol-detail .mric-month { margin-top:24px; border:1px solid var(--border-soft); border-radius:14px; }
+.v5.aol4 .aol-table { margin-top:26px; padding-top:18px; border-top:1px solid var(--border-soft); }
+.v5.aol4 .aol-table summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; font-size:14px; font-weight:700; color:var(--fg-2); }
+.v5.aol4 .aol-table summary::-webkit-details-marker { display:none; }
+.v5.aol4 .aol-table summary::after { content:"Afficher"; font-size:12.5px; font-weight:700; color:var(--accent); }
+.v5.aol4 .aol-table[open] summary::after { content:"Masquer"; }
+.v5.aol4 .mric-table-full { padding:16px 0 0; border-top:0; margin-top:0; }
+.v5.aol4 .aol-detail .mric-cta-lm { margin-top:40px; }
+@container aol (min-width:900px) {
+  .v5.aol4 .aol-work { grid-template-columns:minmax(0,1fr) 360px; gap:28px; }
+  .v5.aol4 .aol-card { position:sticky; top:24px; }
+}
+@container aol (max-width:899px) {
+  .v5.aol4 .mric-hero { padding:44px 20px 28px; background-image:url('https://cdn.jsdelivr.net/gh/gtm-innovation/simulateur-acheter-ou-louer@main/hero-acheter-ou-louer/fond-hero-mobile.webp'); background-position:right top; }
+  .v5.aol4 .mric-hero::before { background:linear-gradient(180deg,rgba(10,14,24,.88) 0%,rgba(10,14,24,.7) 60%,rgba(10,14,24,.9) 100%); }
+  .v5.aol4 .aol-hero-grid { grid-template-columns:1fr; gap:0; }
+  .v5.aol4 .aol-hero-card { display:none; }
+  .v5.aol4 .aol-tool { padding:4px 16px 40px; }
+  .v5.aol4 .aol-steps { padding:14px 18px 0; gap:6px; }
+  .v5.aol4 .aol-step .lbl .t { display:none; }
+  .v5.aol4 .aol-panel { padding:20px 18px 16px; }
+  .v5.aol4 .aol-panel h2 { font-size:23px; }
+  .v5.aol4 .aol-fields { grid-template-columns:minmax(0,1fr); gap:0; }
+  .v5.aol4 .aol-nav { padding:12px 18px 16px; flex-direction:column; align-items:stretch; gap:6px; }
+  .v5.aol4 .aol-nav-cap { display:none; }
+  .v5.aol4 .aol-next { width:100%; min-height:52px; }
+  .v5.aol4 .aol-back { align-self:flex-start; padding:0; min-height:40px; }
+  .v5.aol4 .aol-back[aria-hidden="true"] { display:none; }
+  .v5.aol4 .mric-sens-row { grid-template-columns:repeat(3,1fr); gap:6px; }
+  .v5.aol4 .mric-chip { padding:9px 8px; }
+  .v5.aol4 .mric-chip .k { font-size:10.5px; }
+  .v5.aol4 .mric-chip .v { font-size:12.5px; }
+  .v5.aol4 .aol-mini.off { display:none; }
+  .v5.aol4 .aol-val input { width:96px; font-size:18px; }
+  .v5.aol4 .aol-mini { display:flex; position:sticky; bottom:12px; z-index:5; align-items:center; justify-content:space-between; gap:10px; margin:16px 0 0; padding:10px 12px 10px 16px; border-radius:14px; background:color-mix(in srgb,var(--vc) 14%,#0A0E18); border:1px solid color-mix(in srgb,var(--vc) 40%,transparent); box-shadow:0 14px 30px -14px rgba(0,0,0,.8); }
+  .v5.aol4 .aol-mini .v { font-size:15px; font-weight:800; color:var(--vc); }
+  .v5.aol4 .aol-mini .e { font-size:12px; color:var(--fg-3); }
+  .v5.aol4 .aol-mini a { flex:none; display:inline-flex; align-items:center; min-height:38px; padding:0 14px; border-radius:10px; background:var(--accent); color:var(--accent-ink); font-size:13px; font-weight:800; text-decoration:none; }
+  .v5.aol4 .aol-detail { padding:24px 16px 48px; }
+  .v5.aol4 .aol-h2 { font-size:26px; }
+}
+.v5.aol4.louer { --vc:var(--orange); }
+
+/* ===== v5 : nombre d'années en vedette, curseur, préréglages ===== */
+.v5.aol4 .aol-card-verdict { font-size:44px; }
+.v5.aol4 .aol-card-verdict small { display:block; font-size:13px; font-weight:650; letter-spacing:0; color:var(--fg-3); margin-top:4px; }
+.v5.aol4 .aol-slider { margin:18px 0 6px; padding:14px 14px 12px; border-radius:14px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); }
+.v5.aol4 .aol-slider-head { display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:var(--fg-3); }
+.v5.aol4 .aol-slider-head b { font-size:16px; color:var(--fg); font-variant-numeric:tabular-nums; }
+.v5.aol4 .aol-slider input[type=range] { width:100%; margin:10px 0 4px; -webkit-appearance:none; appearance:none; height:6px; border-radius:6px; background:linear-gradient(90deg,var(--vc) var(--pct,25%),rgba(255,255,255,.14) var(--pct,25%)); outline:none; cursor:pointer; }
+.v5.aol4 .aol-slider input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid var(--vc); box-shadow:0 2px 8px rgba(0,0,0,.4); cursor:grab; }
+.v5.aol4 .aol-slider input[type=range]::-moz-range-thumb { width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid var(--vc); cursor:grab; }
+.v5.aol4 .aol-slider-scale { display:flex; justify-content:space-between; font-size:10.5px; color:var(--fg-4); }
+.v5.aol4 .aol-slider-res { margin-top:10px; font-size:13.5px; line-height:1.45; color:var(--fg-2); }
+.v5.aol4 .aol-slider-res b { color:var(--vc); }
+.v5.aol4 .aol-hero-card .v { font-size:40px; }
+.v5.aol4 .aol-hero-card .v small { display:block; font-size:12.5px; font-weight:650; color:rgba(255,255,255,.75); margin-top:4px; }
+.v5.aol4 .aol-preset button { display:flex; flex-direction:column; align-items:center; gap:1px; padding:6px 12px; }
+.v5.aol4 .aol-preset button small { font-size:10.5px; font-weight:600; opacity:.75; }
+.v5.aol4 .aol-row-preset { flex-wrap:wrap; }
+.v5.aol4 .aol-seg button.off { opacity:.55; }
+@container aol (max-width:899px) {
+  .v5.aol4 .aol-preset button { padding:6px 8px; }
+  .v5.aol4 .aol-preset button small { display:none; }
+  .v5.aol4 .aol-seg-situation button { padding:7px 9px; font-size:13px; }
+}
+
+/* ===== v6 : une réponse, une frise, trois raisons ===== */
+.v5.aol4.aol6 .mric-hero { padding:64px 24px 44px; }
+.v5.aol4.aol6 .mric-hero > .inn { max-width:1080px; }
+.v5.aol4.aol6 .aol-lede { max-width:620px; margin-bottom:30px; }
+.v5.aol4.aol6 .aol6-ask { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; scroll-margin-top:90px; }
+.v5.aol4.aol6 .aol6-q { background:rgba(15,22,38,.82); backdrop-filter:blur(6px); border:1px solid var(--line-2); border-radius:16px; padding:16px 18px 14px; transition:border-color .2s, box-shadow .2s; }
+.v5.aol4.aol6 .aol6-q:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,245,192,.14); }
+.v5.aol4.aol6 .aol6-q label { display:block; font-size:13px; font-weight:700; color:var(--fg-2); margin-bottom:6px; }
+.v5.aol4.aol6 .aol6-in { display:flex; align-items:baseline; gap:8px; }
+.v5.aol4.aol6 .aol6-in input { flex:1; min-width:0; width:100%; border:0; background:transparent; color:var(--fg); font:inherit; font-size:30px; font-weight:800; letter-spacing:-.02em; outline:none; padding:0; font-variant-numeric:tabular-nums; }
+.v5.aol4.aol6 .aol6-in input::placeholder { color:rgba(255,255,255,.22); font-weight:700; }
+.v5.aol4.aol6 .aol6-in span { font-size:14px; font-weight:600; color:var(--fg-4); white-space:nowrap; }
+.v5.aol4.aol6 .aol6-q small { display:block; margin-top:6px; font-size:12px; color:var(--fg-4); line-height:1.4; }
+/* réponse */
+.v5.aol4.aol6 .aol6-answer { padding:10px 24px 40px; }
+.v5.aol4.aol6 .aol6-answer > .inn { max-width:1080px; }
+.v5.aol4.aol6 .aol6-empty { display:flex; align-items:center; gap:12px; padding:22px 24px; border:1px dashed var(--line-2); border-radius:16px; color:var(--fg-3); font-size:15px; }
+.v5.aol4.aol6 .aol6-empty .dot { width:10px; height:10px; border-radius:50%; background:var(--accent); flex:none; animation:aol6pulse 1.6s ease-in-out infinite; }
+@keyframes aol6pulse { 0%,100% { opacity:.35; transform:scale(.8) } 50% { opacity:1; transform:scale(1) } }
+.v5.aol4.aol6 .aol6-empty[hidden], .v5.aol4.aol6 .aol6-res[hidden], .v5.aol4.aol6 .aol6-drawer[hidden], .v5.aol4.aol6 .aol-mini[hidden] { display:none; }
+.v5.aol4.aol6 .aol6-res { padding:28px 28px 24px; border-radius:20px; background:var(--surface); border:1px solid var(--line-2); }
+.v5.aol4.aol6 .aol6-k { margin:0 0 10px; font-size:11.5px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:var(--fg-4); }
+.v5.aol4.aol6 .aol6-sentence { margin:0; font-size:30px; line-height:1.2; letter-spacing:-.03em; font-weight:800; color:var(--fg); }
+.v5.aol4.aol6 .aol6-sentence .l { color:var(--orange); }
+.v5.aol4.aol6 .aol6-sentence .a { color:var(--accent); }
+.v5.aol4.aol6 .aol6-sentence .n { white-space:nowrap; }
+/* frise */
+.v5.aol4.aol6 .aol6-timeline { margin:26px 0 8px; }
+.v5.aol4.aol6 .aol6-track { position:relative; height:44px; border-radius:12px; overflow:visible; display:flex; }
+.v5.aol4.aol6 .aol6-zone { position:relative; height:100%; display:flex; align-items:center; padding:0 12px; font-size:12.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; overflow:hidden; transition:flex-basis .35s; }
+.v5.aol4.aol6 .aol6-zone.louer { background:linear-gradient(90deg,rgba(255,159,67,.32),rgba(255,159,67,.5)); color:#FFD9B3; border-radius:12px 0 0 12px; justify-content:flex-start; }
+.v5.aol4.aol6 .aol6-zone.acheter { background:linear-gradient(90deg,rgba(0,245,192,.42),rgba(0,245,192,.22)); color:#BFFFEF; border-radius:0 12px 12px 0; justify-content:flex-end; flex:1; }
+.v5.aol4.aol6 .aol6-zone.louer:only-of-type, .v5.aol4.aol6 .aol6-zone.louer.alone { border-radius:12px; flex:1; }
+.v5.aol4.aol6 .aol6-zone span { white-space:nowrap; }
+.v5.aol4.aol6 .aol6-flag { position:absolute; top:-30px; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; pointer-events:none; transition:left .35s; }
+.v5.aol4.aol6 .aol6-flag b { font-size:14px; font-weight:850; color:var(--fg); background:var(--bg); padding:3px 9px; border-radius:8px; border:1px solid var(--line-2); white-space:nowrap; }
+.v5.aol4.aol6 .aol6-flag::after { content:""; width:2px; height:30px; background:rgba(255,255,255,.55); margin-top:2px; }
+.v5.aol4.aol6 .aol6-flag[hidden] { display:none; }
+.v5.aol4.aol6 .aol6-range { position:absolute; left:0; right:0; top:0; height:100%; width:100%; margin:0; -webkit-appearance:none; appearance:none; background:transparent; outline:none; cursor:grab; z-index:2; }
+.v5.aol4.aol6 .aol6-range::-webkit-slider-runnable-track { height:44px; background:transparent; }
+.v5.aol4.aol6 .aol6-range::-webkit-slider-thumb { -webkit-appearance:none; width:28px; height:28px; margin-top:8px; border-radius:50%; background:#fff; border:4px solid var(--bg); box-shadow:0 0 0 2px var(--fg), 0 4px 12px rgba(0,0,0,.5); cursor:grab; }
+.v5.aol4.aol6 .aol6-range::-moz-range-track { height:44px; background:transparent; }
+.v5.aol4.aol6 .aol6-range::-moz-range-thumb { width:28px; height:28px; border-radius:50%; background:#fff; border:4px solid var(--bg); box-shadow:0 0 0 2px var(--fg); cursor:grab; }
+.v5.aol4.aol6 .aol6-range:focus-visible::-webkit-slider-thumb { box-shadow:0 0 0 3px var(--accent); }
+.v5.aol4.aol6 .aol6-scale { display:flex; justify-content:space-between; margin-top:8px; font-size:11px; color:var(--fg-4); }
+.v5.aol4.aol6 .aol6-you { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:14px; font-size:15px; color:var(--fg-2); }
+.v5.aol4.aol6 .aol6-you .tag { font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--fg); background:rgba(255,255,255,.08); border:1px solid var(--line-2); border-radius:999px; padding:4px 10px; }
+.v5.aol4.aol6 .aol6-you b { font-weight:800; }
+.v5.aol4.aol6 .aol6-you b.l { color:var(--orange); }
+.v5.aol4.aol6 .aol6-you b.a { color:var(--accent); }
+/* pourquoi */
+.v5.aol4.aol6 .aol6-why { margin-top:30px; padding-top:22px; border-top:1px solid var(--line); }
+.v5.aol4.aol6 .aol6-why-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.v5.aol4.aol6 .aol6-card { padding:16px 18px; border-radius:14px; background:rgba(255,255,255,.03); border:1px solid var(--line); }
+.v5.aol4.aol6 .aol6-card .n { font-size:24px; font-weight:800; letter-spacing:-.02em; color:var(--fg); font-variant-numeric:tabular-nums; line-height:1.1; }
+.v5.aol4.aol6 .aol6-card .n small { font-size:13px; color:var(--fg-4); font-weight:600; margin:0 4px; }
+.v5.aol4.aol6 .aol6-card .n .o { color:var(--orange); } .v5.aol4.aol6 .aol6-card .n .t { color:var(--accent); }
+.v5.aol4.aol6 .aol6-card p { margin:8px 0 0; font-size:13.5px; line-height:1.5; color:var(--fg-3); }
+/* ajuster */
+.v5.aol4.aol6 .aol6-adjust { display:flex; align-items:center; gap:14px; width:100%; margin-top:22px; padding:14px 18px; border:1px solid var(--line-2); border-radius:14px; background:transparent; color:var(--fg); font:inherit; text-align:left; cursor:pointer; transition:border-color .2s; }
+.v5.aol4.aol6 .aol6-adjust:hover { border-color:var(--fg-4); }
+.v5.aol4.aol6 .aol6-adjust span { font-size:15px; font-weight:750; white-space:nowrap; }
+.v5.aol4.aol6 .aol6-adjust small { flex:1; font-size:12.5px; color:var(--fg-4); line-height:1.4; }
+.v5.aol4.aol6 .aol6-adjust svg { width:18px; height:18px; flex:none; transition:transform .25s; color:var(--fg-3); }
+.v5.aol4.aol6 .aol6-adjust[aria-expanded="true"] svg { transform:rotate(180deg); }
+.v5.aol4.aol6 .aol6-drawer { margin-top:12px; }
+.v5.aol4.aol6 .aol6-drawer .aol-panel { padding:6px 22px 18px; }
+.v5.aol4.aol6 .aol6-drawer .aol-fields { margin-top:0; border-top:0; }
+.v5.aol4.aol6 .aol6-drawer .aol-sub:first-child { padding-top:12px; }
+.v5.aol4.aol6 .aol6-chart-legend { margin:12px 0 0; font-size:12.5px; line-height:1.5; color:var(--fg-4); }
+.v5.aol4.aol6 .aol-detail { padding-top:36px; }
+.v5 .aol-methode h3 { margin:26px 0 8px; font-size:17px; font-weight:800; color:var(--fg); letter-spacing:-.01em; }
+.v5 .aol-methode .aol-mlist { margin:0; padding-left:20px; color:var(--fg-3); font-size:15px; line-height:1.6; }
+.v5 .aol-methode .aol-mlist li { margin:6px 0; }
+.v5 .aol-methode .aol-mlist strong, .v5 .aol-methode .btxt strong { color:var(--fg-2); font-weight:650; }
+.v5 .aol-methode a { color:var(--accent); }
+.v5 .aol-methode .aol-mdate { font-size:13px; color:var(--fg-4); }
+.v5 .aol-methode { scroll-margin-top:80px; }
+@container aol (max-width:899px) {
+  .v5.aol4.aol6 .mric-hero { padding:44px 20px 24px; }
+  .v5.aol4.aol6 .aol6-ask { grid-template-columns:1fr; gap:10px; }
+  .v5.aol4.aol6 .aol6-in input { font-size:26px; }
+  .v5.aol4.aol6 .aol6-answer { padding:8px 16px 32px; }
+  .v5.aol4.aol6 .aol6-res { padding:20px 16px 18px; }
+  .v5.aol4.aol6 .aol6-sentence { font-size:23px; }
+  .v5.aol4.aol6 .aol6-why-grid { grid-template-columns:1fr; gap:10px; }
+  .v5.aol4.aol6 .aol6-adjust { flex-wrap:wrap; }
+  .v5.aol4.aol6 .aol6-adjust small { flex-basis:100%; order:3; }
+  .v5.aol4.aol6 .aol6-zone { padding:0 8px; font-size:11px; }
+  .v5.aol4.aol6 .aol-mini { margin:0 16px; }
+}
+
+/* ===== v7 : situation, loyer ou prix, zone ; le bien équivalent est déduit ===== */
+.v5.aol4.aol6 .aol7-ask { display:flex; flex-direction:column; gap:14px; scroll-margin-top:90px; }
+.v5.aol4.aol6 .aol7-lbl { font-size:13px; font-weight:700; color:var(--fg-2); margin-bottom:8px; }
+.v5.aol4.aol6 .aol7-step { background:rgba(15,22,38,.82); backdrop-filter:blur(6px); border:1px solid var(--line-2); border-radius:16px; padding:14px 18px 16px; }
+.v5.aol4.aol6 .aol7-seg { display:flex; gap:6px; padding:4px; border-radius:12px; background:rgba(255,255,255,.05); border:1px solid var(--line-2); }
+.v5.aol4.aol6 .aol7-seg button { flex:1; border:0; border-radius:9px; background:transparent; color:var(--fg-3); font:inherit; font-size:15px; font-weight:700; padding:11px 10px; cursor:pointer; transition:background .15s,color .15s; }
+.v5.aol4.aol6 .aol7-seg button.on { background:var(--accent); color:var(--accent-ink); }
+.v5.aol4.aol6 .aol7-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.6fr); gap:14px; }
+.v5.aol4.aol6 .aol7-q { background:rgba(15,22,38,.82); backdrop-filter:blur(6px); border:1px solid var(--line-2); border-radius:16px; padding:16px 18px 14px; transition:border-color .2s, box-shadow .2s; }
+.v5.aol4.aol6 .aol7-q[hidden] { display:none; }
+.v5.aol4.aol6 .aol7-q:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,245,192,.14); }
+.v5.aol4.aol6 .aol7-q label { display:block; font-size:13px; font-weight:700; color:var(--fg-2); margin-bottom:6px; }
+.v5.aol4.aol6 .aol7-q small { display:block; margin-top:6px; font-size:12px; color:var(--fg-4); line-height:1.4; }
+.v5.aol4.aol6 .aol7-chips { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+.v5.aol4.aol6 .aol7-chips button { border:1px solid var(--line-2); border-radius:10px; background:transparent; color:var(--fg-2); font:inherit; font-size:13px; font-weight:650; padding:10px 8px; cursor:pointer; line-height:1.25; transition:border-color .15s,background .15s,color .15s; }
+.v5.aol4.aol6 .aol7-chips button:hover { border-color:var(--fg-4); }
+.v5.aol4.aol6 .aol7-chips button.on { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+.v5.aol4.aol6 .aol7-derived { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; padding:12px 16px; border-radius:12px; background:rgba(0,245,192,.08); border:1px solid rgba(0,245,192,.25); font-size:14px; color:var(--fg-2); line-height:1.45; }
+.v5.aol4.aol6 .aol7-derived[hidden] { display:none; }
+.v5.aol4.aol6 .aol7-derived b { color:var(--fg); }
+.v5.aol4.aol6 .aol7-link { border:0; background:none; padding:0; color:var(--accent); font:inherit; font-size:13.5px; font-weight:750; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.v5.aol4.aol6 .aol7-note { margin:12px 0 0; font-size:12.5px; line-height:1.5; color:var(--fg-4); }
+.v5.aol4.aol6 .aol7-note[hidden] { display:none; }
+@container aol (max-width:899px) {
+  .v5.aol4.aol6 .aol7-row { grid-template-columns:1fr; gap:10px; }
+  .v5.aol4.aol6 .aol7-chips { grid-template-columns:1fr 1fr; }
+  .v5.aol4.aol6 .aol7-seg button { font-size:14px; padding:10px 6px; }
+}
+
+/* ===== v8 : ville (autocomplétion sur les données DVF + ANIL), surface, type ===== */
+.v5.aol4.aol6 .aol8-row { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr); gap:14px; }
+.v5.aol4.aol6 .aol8-combo { position:relative; }
+.v5.aol4.aol6 .aol8-combo input { width:100%; border:0; background:transparent; color:var(--fg); font:inherit; font-size:24px; font-weight:800; letter-spacing:-.02em; outline:none; padding:2px 0; }
+.v5.aol4.aol6 .aol8-combo input::placeholder { color:rgba(255,255,255,.22); font-weight:700; font-size:20px; }
+.v5.aol4.aol6 .aol8-sugg { position:absolute; left:-18px; right:-18px; top:calc(100% + 10px); z-index:30; margin:0; padding:6px; list-style:none; background:#101828; border:1px solid var(--line-2); border-radius:14px; box-shadow:0 24px 50px -20px rgba(0,0,0,.9); max-height:300px; overflow:auto; }
+.v5.aol4.aol6 .aol8-sugg[hidden] { display:none; }
+.v5.aol4.aol6 .aol8-sugg li { display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:10px 12px; border-radius:9px; cursor:pointer; font-size:14.5px; color:var(--fg); }
+.v5.aol4.aol6 .aol8-sugg li small { font-size:12px; color:var(--fg-4); white-space:nowrap; }
+.v5.aol4.aol6 .aol8-sugg li:hover, .v5.aol4.aol6 .aol8-sugg li[aria-selected="true"] { background:rgba(0,245,192,.12); }
+.v5.aol4.aol6 .aol8-sugg li.none { color:var(--fg-4); cursor:default; font-size:13px; }
+.v5.aol4.aol6 .aol8-type { display:inline-flex; gap:2px; margin-top:8px; padding:3px; border:1px solid var(--line-2); border-radius:9px; }
+.v5.aol4.aol6 .aol8-type button { border:0; background:none; color:var(--fg-3); font:inherit; font-size:12.5px; font-weight:650; padding:5px 10px; border-radius:7px; cursor:pointer; }
+.v5.aol4.aol6 .aol8-type button.on { background:var(--accent); color:var(--accent-ink); }
+.v5.aol4.aol6 .aol7-q[hidden] { display:none; }
+.v5.aol4.aol6 .aol8-src { display:block; margin-top:8px; font-size:12px; line-height:1.5; color:var(--fg-4); }
+.v5.aol4.aol6 .aol8-src b { color:var(--fg-3); font-weight:700; }
+@container aol (max-width:899px) {
+  .v5.aol4.aol6 .aol8-row { grid-template-columns:1fr; gap:10px; }
+  .v5.aol4.aol6 .aol8-combo input { font-size:21px; }
+  .v5.aol4.aol6 .aol8-sugg { left:-14px; right:-14px; }
+}
+
+/* ===== v8 : le compte à la durée choisie ===== */
+.v5.aol4.aol6 .aol9-ledger { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.v5.aol4.aol6 .aol9-col { border:1px solid var(--line); border-radius:14px; padding:14px 16px 10px; background:rgba(255,255,255,.025); }
+.v5.aol4.aol6 .aol9-col.acheter { border-color:rgba(0,245,192,.3); }
+.v5.aol4.aol6 .aol9-col.louer { border-color:rgba(255,159,67,.35); }
+.v5.aol4.aol6 .aol9-head { display:flex; flex-direction:column; gap:2px; margin-bottom:8px; }
+.v5.aol4.aol6 .aol9-head span { font-size:15px; font-weight:800; color:var(--fg); }
+.v5.aol4.aol6 .aol9-col.acheter .aol9-head span { color:var(--accent); }
+.v5.aol4.aol6 .aol9-col.louer .aol9-head span { color:var(--orange); }
+.v5.aol4.aol6 .aol9-head small { font-size:12px; color:var(--fg-4); line-height:1.4; }
+.v5.aol4.aol6 .aol9-line { display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:7px 0; border-top:1px solid var(--line); font-size:13.5px; color:var(--fg-3); }
+.v5.aol4.aol6 .aol9-line b { color:var(--fg); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.v5.aol4.aol6 .aol9-line.neg b { color:var(--fg-3); }
+.v5.aol4.aol6 .aol9-line.info { border-top-style:dashed; font-size:12.5px; color:var(--fg-4); padding:5px 0; }
+.v5.aol4.aol6 .aol9-line.info b { color:var(--accent); font-size:12.5px; }
+.v5.aol4.aol6 .aol9-line.info[hidden] { display:none; }
+.v5.aol4.aol6 .aol9-line.opt[hidden] { display:none; }
+.v5.aol4.aol6 .aol9-total { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-top:4px; padding:10px 0 4px; border-top:2px solid var(--line-2); font-size:14px; font-weight:800; color:var(--fg); }
+.v5.aol4.aol6 .aol9-total b { font-size:20px; font-variant-numeric:tabular-nums; }
+.v5.aol4.aol6 .aol9-col.acheter .aol9-total b { color:var(--accent); }
+.v5.aol4.aol6 .aol9-col.louer .aol9-total b { color:var(--orange); }
+.v5.aol4.aol6 .aol9-diff { margin:16px 0 0; font-size:16px; font-weight:750; color:var(--fg); line-height:1.4; }
+.v5.aol4.aol6 .aol9-diff .l { color:var(--orange); } .v5.aol4.aol6 .aol9-diff .a { color:var(--accent); }
+.v5.aol4.aol6 .aol9-range { margin:10px 0 0; font-size:14px; line-height:1.5; color:var(--fg-3); }
+.v5.aol4.aol6 .aol9-range b { color:var(--fg); }
+.v5.aol4.aol6 .aol9-method-link { margin:10px 0 0; font-size:13.5px; }
+.v5.aol4.aol6 .aol9-method-link a { color:var(--accent); font-weight:700; text-decoration:none; }
+.v5.aol4.aol6 .aol9-method-link a:hover { text-decoration:underline; text-underline-offset:3px; }
+.v5.aol4.aol6 .aol9-how { margin:8px 0 0; font-size:13.5px; line-height:1.55; color:var(--fg-3); }
+@container aol (max-width:899px) { .v5.aol4.aol6 .aol9-ledger { grid-template-columns:1fr; gap:10px; } }
 </style>
 
-<div class="mric-calc v5" data-share-url="https://moneyradar.org/simulateur-acheter-ou-louer/">
+<div class="mric-calc v5 aol4 aol6" data-share-url="https://moneyradar.org/simulateur-acheter-ou-louer/">
 
   <section class="mric-hero"><div class="inn">
-    <img src="https://moneyradar.org/lp4/wp-content/themes/astra-child/assets/images/moneyradar-logo.webp" alt="MoneyRadar" class="mric-hero-logo">
+    <p class="aol-eyebrow">Immobilier · simulateur gratuit</p>
     <h1>Acheter ou louer&nbsp;: <em>que dit le calcul</em>&nbsp;?</h1>
-    <p class="mric-hero-sub">Comparez le coût réel d'acheter votre logement plutôt que de le louer, sur la durée. Le simulateur calcule votre point de bascule et le patrimoine que vous vous constituez.</p>
+    <p class="aol-lede">Votre ville, votre surface, votre loyer&nbsp;: vous saurez <b>à partir de combien d'années acheter devient plus intéressant que louer</b>, pour un logement équivalent au vôtre, aux prix réels de votre commune. Sans inscription.</p>
+    <div class="aol7-ask" id="mric-tool" data-communes="https://cdn.jsdelivr.net/gh/gtm-innovation/simulateur-acheter-ou-louer@main/communes-immo.json" data-communes-version="20261023c">
+      <div class="aol7-step">
+        <div class="aol7-lbl">Aujourd'hui, vous êtes</div>
+        <div class="aol7-seg" id="aol7-situation" role="group" aria-label="Votre situation">
+          <button type="button" class="on" data-v="locataire">Locataire</button>
+          <button type="button" data-v="proprietaire">Propriétaire</button>
+          <button type="button" data-v="heberge">Hébergé(e)</button>
+        </div>
+        <input type="hidden" id="mric-situation" value="locataire">
+      </div>
+      <div class="aol8-row">
+        <div class="aol7-q aol8-ville">
+          <label for="aol8-ville" id="aol8-ville-lbl">Votre ville</label>
+          <div class="aol8-combo">
+            <input type="text" id="aol8-ville" value="" placeholder="Toulouse, Lyon 3e, Montreuil…" autocomplete="off" autocapitalize="words" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="aol8-sugg">
+            <ul class="aol8-sugg" id="aol8-sugg" role="listbox" hidden></ul>
+          </div>
+          <small id="aol8-ville-hint">Petite commune : ajoutez le département, par exemple « Mios 33 »</small>
+          <input type="hidden" id="mric-insee" value="">
+        </div>
+        <div class="aol7-q aol8-surface">
+          <label for="mric-surface" id="aol8-surface-lbl">Sa surface</label>
+          <div class="aol6-in"><input type="text" id="mric-surface" value="" placeholder="45" inputmode="decimal" autocomplete="off"><span>m²</span></div>
+          <div class="aol8-type" id="aol8-type" role="group" aria-label="Type de logement"><button type="button" class="on" data-t="appartement">Appartement</button><button type="button" data-t="maison">Maison</button></div>
+          <input type="hidden" id="mric-typeLogement" value="appartement">
+        </div>
+        <div class="aol7-q" id="aol7-q-loyer">
+          <label for="mric-loyer" id="aol7-loyer-lbl">Votre loyer</label>
+          <div class="aol6-in"><input type="text" id="mric-loyer" value="" placeholder="700" inputmode="decimal" autocomplete="off"><span>€ / mois</span></div>
+          <small id="aol7-loyer-hint">Hors charges</small>
+        </div>
+      </div>
+      <input type="hidden" id="mric-prix" value="">
+      <div class="aol7-derived" id="aol7-derived" hidden><span id="aol7-derived-t"></span> <button type="button" class="aol7-link" id="aol7-derived-edit">Saisir le vrai prix ou le vrai loyer</button></div>
+    </div>
   </div></section>
 
-  <section class="dk mric-tool-section"><div class="inn-wide"><div class="mric-tool-grid">
+  <section class="aol6-answer" id="aol6-answer"><div class="inn">
+    <div class="aol6-empty" id="aol6-empty"><span class="dot"></span><span id="aol6-empty-t">Indiquez votre loyer&nbsp;: votre réponse s'affiche ici, sans rien envoyer.</span></div>
+    <div class="aol6-res" id="aol6-res" hidden>
+      <p class="aol6-k">Votre réponse</p>
+      <h2 class="aol6-sentence" id="aol6-sentence"></h2>
+      <p class="aol9-range" id="aol9-range"></p>
 
-        <div class="mric-form-col">
-          <span class="lbl">Vos paramètres</span>
-          <div class="mric-form-grid">
-            <div class="mric-grp">🏠 Le bien</div>
-            <div class="mric-field"><label for="mric-prix">Prix d'achat</label><div class="mric-input-wrap"><input type="text" id="mric-prix" value="300000" min="0" step="1000" inputmode="decimal"><span class="mric-input-suffix">&euro;</span></div></div>
-            <div class="mric-field mric-field-credit"><label for="mric-apport">Apport initial</label><div class="mric-input-wrap"><input type="text" id="mric-apport" value="40000" min="0" step="1000" inputmode="decimal"><span class="mric-input-suffix">&euro;</span></div></div>
-            <div class="mric-field"><label for="mric-notaire">Frais de notaire</label><div class="mric-input-wrap"><input type="text" id="mric-notaire" value="23000" min="0" step="500" inputmode="decimal"><span class="mric-input-suffix">&euro;</span></div></div>
-            <div class="mric-field"><label for="mric-agence">Frais d'agence</label><div class="mric-input-wrap"><input type="text" id="mric-agence" value="0" min="0" step="500" inputmode="decimal"><span class="mric-input-suffix">&euro;</span></div></div>
-            <div class="mric-grp">🏦 Le crédit</div>
-            <div class="mric-cash-toggle"><label><input type="checkbox" id="mric-cash"> J'achète <strong>cash</strong> (sans crédit)</label></div>
-            <div class="mric-field mric-field-credit"><label for="mric-taux">Taux d'intérêt</label><div class="mric-input-wrap"><input type="text" id="mric-taux" value="3.4" min="0" step="0.05" inputmode="decimal"><span class="mric-input-suffix">%</span></div></div>
-            <div class="mric-field"><label for="mric-duree">Durée du prêt</label><div class="mric-input-wrap"><input type="text" id="mric-duree" value="25" min="0" step="1" inputmode="decimal"><span class="mric-input-suffix">ans</span></div></div>
-            <div class="mric-field mric-field-credit"><label for="mric-assurance">Assurance emprunteur</label><div class="mric-input-wrap"><input type="text" id="mric-assurance" value="0.34" min="0" step="0.01" inputmode="decimal"><span class="mric-input-suffix">%</span></div></div>
-            <div class="mric-grp">📅 Frais annuels (proprio)</div>
-            <div class="mric-field"><label for="mric-taxe">Taxe foncière / an</label><div class="mric-input-wrap"><input type="text" id="mric-taxe" value="1300" min="0" step="50" inputmode="decimal"><span class="mric-input-suffix">&euro;</span></div></div>
-            <div class="mric-field"><label for="mric-entretien">Entretien / an</label><div class="mric-input-wrap"><input type="text" id="mric-entretien" value="1800" min="0" step="100" inputmode="decimal"><span class="mric-input-suffix">&euro;</span></div></div>
-            <div class="mric-field"><label for="mric-appreciation">Appréciation du bien / an</label><div class="mric-input-wrap"><input type="text" id="mric-appreciation" value="2" min="0" step="0.1" inputmode="decimal"><span class="mric-input-suffix">%</span></div></div>
-            <div class="mric-grp">🔑 La location</div>
-            <div class="mric-field"><label for="mric-loyer">Loyer mensuel</label><div class="mric-input-wrap"><input type="text" id="mric-loyer" value="1100" min="0" step="50" inputmode="decimal"><span class="mric-input-suffix">&euro;</span></div></div>
-            <div class="mric-field"><label for="mric-evolLoyer">Évolution du loyer / an</label><div class="mric-input-wrap"><input type="text" id="mric-evolLoyer" value="1.5" min="0" step="0.1" inputmode="decimal"><span class="mric-input-suffix">%</span></div></div>
-            <div class="mric-field"><label for="mric-depot">Dépôt de garantie</label><div class="mric-input-wrap"><input type="text" id="mric-depot" value="1100" min="0" step="50" inputmode="decimal"><span class="mric-input-suffix">&euro;</span></div></div>
-            <div class="mric-field"><label for="mric-assuranceHab">Assurance habitation / an</label><div class="mric-input-wrap"><input type="text" id="mric-assuranceHab" value="180" min="0" step="10" inputmode="decimal"><span class="mric-input-suffix">&euro;</span></div></div>
-            <div class="mric-grp">📈 Si vous louez</div>
-            <div class="mric-field"><label for="mric-rendement">Rendement de votre épargne</label><div class="mric-input-wrap"><input type="text" id="mric-rendement" value="5" min="0" step="0.1" inputmode="decimal"><span class="mric-input-suffix">%</span></div></div>
-          </div>
-          <button class="mric-btn" id="mric-btn-calculer" type="button">Acheter ou louer&nbsp;? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      <div class="aol6-timeline">
+        <div class="aol6-track" id="aol6-track">
+          <div class="aol6-zone louer" id="aol6-z-louer"><span>Louer</span></div>
+          <div class="aol6-zone acheter" id="aol6-z-acheter"><span>Acheter</span></div>
+          <div class="aol6-flag" id="aol6-flag"><b id="aol6-flag-n"></b></div>
+          <input type="range" id="mric-horizon" min="1" max="30" step="1" value="8" class="aol6-range" aria-label="Combien d'années comptez-vous rester ?">
         </div>
+        <div class="aol6-scale"><span>1 an</span><span>10 ans</span><span>20 ans</span><span>30 ans</span></div>
+        <div class="aol6-you"><span class="tag" id="aol6-you-tag">Vous&nbsp;? glissez le point</span><span id="aol6-you-t"></span></div>
+        <p class="aol7-note" id="aol7-note" hidden></p>
+      </div>
 
-        <!-- COL DROITE : Résultats -->
-        <div class="mric-results-col">
-          <div class="mric-results" id="mric-results">
+      <div class="aol6-why">
+        <p class="aol6-k">Le compte, si vous restez <span id="aol9-h1">8 ans</span></p>
+        <div class="aol9-ledger">
+          <div class="aol9-col acheter">
+            <div class="aol9-head"><span>Si vous achetez</span><small id="aol9-a-sub"></small></div>
+            <div class="aol9-line"><span id="aol9-a1-l">Le logement vaudra</span><b id="aol9-a1"></b></div>
+            <div class="aol9-line info" id="aol9-a15-row"><span id="aol9-a15-l">Capital déjà remboursé</span><b id="aol9-a15"></b></div>
+            <div class="aol9-line neg"><span id="aol9-a2-l">Reste à rembourser</span><b id="aol9-a2"></b></div>
+            <div class="aol9-line neg"><span>Frais de revente</span><b id="aol9-a3"></b></div>
+            <div class="aol9-line opt" id="aol9-a4-row"><span>Épargne placée en plus</span><b id="aol9-a4"></b></div>
+            <div class="aol9-total"><span>Ce qu'il vous reste</span><b id="aol9-a-tot"></b></div>
+          </div>
+          <div class="aol9-col louer">
+            <div class="aol9-head"><span>Si vous louez et placez</span><small id="aol9-l-sub"></small></div>
+            <div class="aol9-line"><span id="aol9-l1-l">Apport et frais gardés, placés</span><b id="aol9-l1"></b></div>
+            <div class="aol9-line"><span id="aol9-l2-l">Écart mensuel placé</span><b id="aol9-l2"></b></div>
+            <div class="aol9-line"><span>Dépôt de garantie rendu</span><b id="aol9-l3"></b></div>
+            <div class="aol9-total"><span>Ce qu'il vous reste</span><b id="aol9-l-tot"></b></div>
+          </div>
+        </div>
+        <p class="aol9-diff" id="aol9-diff"></p>
+        <p class="aol9-how" id="aol9-how"></p>
+        <p class="aol9-method-link"><a href="#aol-methode">Comment c'est calculé, et d'où viennent les chiffres →</a></p>
+      </div>
 
-            <!-- HERO RESULT : verdict -->
-            <div class="mric-result-block mric-anim">
-              <div class="mric-headline-card">
-                <div class="mric-headline-eyebrow" id="mric-verdict-eyebrow">Le verdict</div>
-                <div class="mric-headline-num" id="mric-verdict-num">—</div>
-                <div class="mric-headline-sub" id="mric-verdict-sub"></div>
-              </div>
-              <div class="mric-stats-row mric-3">
-                <div class="mric-stat"><div class="mric-stat-num mric-teal" id="mric-cout-achat">—</div><div class="mric-stat-lbl">Patrimoine net — achat</div></div>
-                <div class="mric-stat"><div class="mric-stat-num mric-orange" id="mric-cout-location">—</div><div class="mric-stat-lbl">Patrimoine net — location</div></div>
-                <div class="mric-stat"><div class="mric-stat-num mric-white" id="mric-patrimoine">—</div><div class="mric-stat-lbl">Écart de patrimoine</div></div>
-              </div>
-            </div>
+      <button class="aol6-adjust" id="aol6-adjust" type="button" aria-expanded="false" aria-controls="aol6-drawer"><span>Ajuster les hypothèses</span><small>crédit, frais, charges, scénarios · des valeurs réalistes sont déjà remplies</small><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
+      <div class="aol6-drawer aol-form" id="aol6-drawer" hidden>
+        <div class="aol-panel">
+          <div class="aol-fields">
+            <div class="aol-sub">Le logement comparé</div>
+            <div class="aol-row" id="aol7-r-prix"><label for="mric-prix-d">Prix du bien équivalent <small id="aol7-r-prix-h">surface × prix au m² de la commune (ventes des 12 derniers mois), modifiable</small></label><div class="aol-val"><input type="text" id="mric-prix-d" value="" inputmode="decimal"><span>€</span></div></div>
+            <div class="aol-row" id="aol7-r-loyer"><label for="mric-loyer-d"><span id="aol7-r-loyer-l">Loyer du bien équivalent</span> <small id="aol7-r-loyer-h">hors charges, modifiable</small></label><div class="aol-val"><input type="text" id="mric-loyer-d" value="" inputmode="decimal"><span>€ / mois</span></div></div>
+            <div class="aol-row"><label for="mric-apport">Votre apport <small>10 % du prix par défaut</small></label><div class="aol-val"><input type="text" id="mric-apport" value="" inputmode="decimal"><span>€</span></div></div>
+            <div class="aol-sub">Scénario</div>
+            <div class="aol-row full aol-row-preset"><span class="lb">Hausse du bien et rendement de l'épargne <small>par an · le rendement est net d'impôts</small></span><div class="aol-seg aol-preset" id="aol-seg-preset" role="group" aria-label="Scénario"><button type="button" data-appr="1" data-rdt="3">Prudent<small>+1 % · 3 %</small></button><button type="button" class="on" data-appr="2" data-rdt="4">Moyen<small>+2 % · 4 %</small></button><button type="button" data-appr="3" data-rdt="5">Dynamique<small>+3 % · 5 %</small></button></div></div>
+            <div class="aol-row "><label for="mric-appreciation">Hausse du prix du bien</label><div class="aol-val"><input type="text" id="mric-appreciation" value="2" inputmode="decimal"><span>% / an</span></div></div>
+            <div class="aol-row "><label for="mric-rendement">Rendement net de votre épargne <small>PEA ou assurance vie ≈ brut, compte-titres ≈ brut × 0,7</small></label><div class="aol-val"><input type="text" id="mric-rendement" value="4" inputmode="decimal"><span>% / an</span></div></div>
+            <div class="aol-sub">L'achat</div>
+            <div class="aol-row full"><span class="lb">Vous achetez <small>cash : tout le capital est immobilisé</small></span><div class="aol-seg" id="aol-seg-cash" role="group" aria-label="Mode d'achat"><button type="button" class="on" data-cash="0">À crédit</button><button type="button" data-cash="1">Cash</button></div><input type="checkbox" id="mric-cash" hidden></div>
+            <div class="aol-row aol-credit"><label for="mric-taux">Taux d'intérêt</label><div class="aol-val"><input type="text" id="mric-taux" value="3.4" inputmode="decimal"><span>%</span></div></div>
+            <div class="aol-row aol-credit"><label for="mric-duree">Durée du prêt</label><div class="aol-val"><input type="text" id="mric-duree" value="25" inputmode="decimal"><span>ans</span></div></div>
+            <div class="aol-row aol-credit"><label for="mric-assurance">Assurance emprunteur <small>sur le capital emprunté</small></label><div class="aol-val"><input type="text" id="mric-assurance" value="0.34" inputmode="decimal"><span>% / an</span></div></div>
+            <div class="aol-row"><label for="mric-type">État du bien <small>le neuf a des frais de notaire réduits</small></label><select id="mric-type"><option value="ancien">Ancien</option><option value="neuf">Neuf (VEFA)</option></select></div>
+            <div class="aol-row "><label for="mric-notaire">Frais de notaire <small>calculés d'après le prix, modifiables</small></label><div class="aol-val"><input type="text" id="mric-notaire" value="0" inputmode="decimal"><span>€</span></div></div>
+            <div class="aol-row "><label for="mric-agence">Frais d'agence à l'achat</label><div class="aol-val"><input type="text" id="mric-agence" value="0" inputmode="decimal"><span>€</span></div></div>
+            <div class="aol-row "><label for="mric-revente">Frais de revente <small>agence à la revente, en % du prix</small></label><div class="aol-val"><input type="text" id="mric-revente" value="5" inputmode="decimal"><span>%</span></div></div>
+            <div class="aol-row aol-credit"><label for="mric-fraisCredit">Frais du crédit <small>garantie (caution ou hypothèque) et dossier, en % du prêt</small></label><div class="aol-val"><input type="text" id="mric-fraisCredit" value="1.2" inputmode="decimal"><span>%</span></div></div>
+            <div class="aol-row aol-credit"><label for="mric-ira">Pénalité si revente avant la fin du prêt <small>indemnité de remboursement anticipé, plafond légal 3 % du capital restant (0 pour l'ignorer)</small></label><div class="aol-val"><input type="text" id="mric-ira" value="3" inputmode="decimal"><span>%</span></div></div>
+            <div class="aol-sub">Charges du propriétaire</div>
+            <div class="aol-row "><label for="mric-taxe">Taxe foncière <small>estimée : 1 à 2 mois de loyer de marché selon la ville</small></label><div class="aol-val"><input type="text" id="mric-taxe" value="1300" inputmode="decimal"><span>€ / an</span></div></div>
+            <div class="aol-row "><label for="mric-copro">Charges de copropriété <small>estimées : part non récupérable, 0 pour une maison</small></label><div class="aol-val"><input type="text" id="mric-copro" value="1200" inputmode="decimal"><span>€ / an</span></div></div>
+            <div class="aol-row "><label for="mric-entretien">Entretien et travaux <small>estimés : 0,6 % du prix, au moins 8 €/m² par an</small></label><div class="aol-val"><input type="text" id="mric-entretien" value="1800" inputmode="decimal"><span>€ / an</span></div></div>
+            <div class="aol-row "><label for="mric-inflation">Hausse des charges <small>taxe, copropriété, entretien, assurance</small></label><div class="aol-val"><input type="text" id="mric-inflation" value="2" inputmode="decimal"><span>% / an</span></div></div>
+            <div class="aol-sub">Côté location</div>
+            <div class="aol-row "><label for="mric-evolLoyer">Hausse du loyer</label><div class="aol-val"><input type="text" id="mric-evolLoyer" value="2" inputmode="decimal"><span>% / an</span></div></div>
+            <div class="aol-row "><label for="mric-depot">Dépôt de garantie <small>rendu en fin de location</small></label><div class="aol-val"><input type="text" id="mric-depot" value="1100" inputmode="decimal"><span>€</span></div></div>
+            <div class="aol-row "><label for="mric-assuranceHab">Assurance habitation <small>estimée, payée dans les deux cas</small></label><div class="aol-val"><input type="text" id="mric-assuranceHab" value="180" inputmode="decimal"><span>€ / an</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div></section>
 
-            <!-- Chart -->
-            <div class="mric-chart-wrap mric-anim">
-              <div class="mric-chart-header"><span class="mric-chart-title">Patrimoine net : acheter vs louer</span></div>
-              <canvas id="mric-chart" height="240"></canvas>
-            </div>
+  <div class="aol-mini" id="aol-mini" aria-hidden="true" hidden><div><div class="v" id="aol-m-v">—</div><div class="e" id="aol-m-e"></div></div><a href="#aol6-answer">Voir</a></div>
 
-            <!-- Summary -->
-            <div class="qblock mric-anim" id="mric-summary"></div>
+  <section class="aol-detail" id="aol-detail"><div class="inn">
+    <p class="aol-eyebrow">Pour vérifier</p>
+    <h2 class="aol-h2">Le détail, année par année</h2>
+    <p class="aol-intro">Ce que chaque option vous laisse au fil du temps, et ce qu'elle coûte chaque mois. Le repère « Vous » suit le point que vous avez glissé.</p>
+
+    <div class="mric-chart-wrap mric-anim">
+      <div class="mric-chart-header"><span class="mric-chart-title">Ce qu'il vous reste : acheter vs louer</span><span class="mric-chart-note" id="mric-chart-note"></span></div>
+      <canvas id="mric-chart" height="240"></canvas>
+      <p class="aol6-chart-legend">« Acheter » : la valeur du bien, moins les frais de revente et ce qu'il reste à rembourser, plus l'épargne placée. « Louer » : l'apport et les frais que vous n'avez pas dépensés, plus ce que vous placez chaque mois, le tout avec les intérêts.</p>
+    </div>
+
+    <div class="mric-month" id="mric-month">
+      <div class="mric-month-title">Chaque mois, la première année</div>
+      <div class="mric-month-col"><div class="k">Propriétaire</div><div class="big mric-teal" id="mric-m-proprio">—</div><div class="det" id="mric-m-proprio-det"></div></div>
+      <div class="mric-month-col"><div class="k">Locataire</div><div class="big mric-orange" id="mric-m-loc">—</div><div class="det" id="mric-m-loc-det"></div></div>
+      <div class="mric-month-foot" id="mric-m-foot"></div>
+    </div>
+
+    <details class="aol-table" id="aol-table">
+      <summary>Le tableau, année par année</summary>
+      <div class="mric-table-full">
+        <div class="mric-table-container" id="mric-table-container">
+          <div class="mric-table-scroll">
+            <table class="mric-table">
+              <thead><tr><th>Année</th><th>Acheter (après revente)</th><th>Louer + placer</th><th>Valeur du bien</th><th>Écart</th></tr></thead>
+              <tbody id="mric-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </details>
 
             <!-- ===== LEAD MAGNET : analyse achat/louer ===== -->
             <div class="mric-cta-lm mric-anim" id="mric-cta-lm">
@@ -1744,20 +2264,42 @@
               </div>
             </div>
 
-          </div>
-        </div>
 
-      </div></div>
+  </div></section>
 
-    <div class="mric-table-full">
-      <div class="mric-table-container" id="mric-table-container" style="max-width:1100px;margin:0 auto">
-        <div class="mric-table-scroll">
-          <table class="mric-table">
-            <thead><tr><th>Année</th><th>Patrimoine achat</th><th>Patrimoine location</th><th>Valeur du bien</th><th>Écart</th></tr></thead>
-            <tbody id="mric-table-body"></tbody>
-          </table>
-        </div>
-      </div>
+  <!-- ===== MÉTHODE ===== -->
+  <section class="lt aol-methode" id="aol-methode">
+    <div class="inn">
+      <h2 class="stitle">Comment le simulateur calcule</h2>
+      <p class="btxt">Le simulateur compare, année après année et pour un même logement, <strong>ce qu'il vous reste</strong> si vous l'achetez et ce qu'il vous reste si vous le louez en plaçant l'argent non dépensé. La bascule est la première année où l'achat passe devant. Tout se calcule dans votre navigateur, rien n'est envoyé.</p>
+
+      <h3>1. Le logement comparé</h3>
+      <p class="btxt">Le prix du bien équivalent = votre surface × le prix au m² de votre commune, ajusté à la taille du logement (un studio se paie plus cher au m² qu'un grand appartement). Pour un propriétaire ou une personne hébergée, le loyer équivalent = la surface × le loyer au m² de la commune pour cette taille, ramené hors charges (× 0,88 pour un appartement, × 0,94 pour une maison). Un locataire garde son vrai loyer. Les deux valeurs sont modifiables dans « Ajuster ».</p>
+
+      <h3>2. Si vous achetez</h3>
+      <ul class="aol-mlist">
+        <li><strong>Le jour J</strong> : l'apport (10 % du prix par défaut), les frais de notaire (7,5 % dans l'ancien, 2,5 % dans le neuf), les frais d'agence éventuels et les frais du crédit (garantie et dossier, 1,2 % du prêt).</li>
+        <li><strong>Chaque mois</strong> : la mensualité du prêt (taux 3,4 %, 25 ans, assurance 0,34 % par an sur le capital emprunté), plus la taxe foncière (1 à 2 mois de loyer de marché selon le niveau de prix de la ville), les charges de copropriété non récupérables (12 €/m² par an, 0 pour une maison), l'entretien (0,6 % du prix, au moins 8 €/m²) et l'assurance habitation. Ces charges augmentent de 2 % par an.</li>
+        <li><strong>Ce qu'il vous reste à une date donnée</strong> : la valeur du bien (+2 % par an dans le scénario moyen), moins les frais de revente (5 %), moins le capital restant dû, moins l'indemnité de remboursement anticipé si vous revendez avant la fin du prêt (six mois d'intérêts, plafonnés à 3 % du capital restant), plus l'épargne que vous auriez placée si être propriétaire vous coûtait moins cher que louer.</li>
+      </ul>
+
+      <h3>3. Si vous louez et placez</h3>
+      <ul class="aol-mlist">
+        <li><strong>Le jour J</strong> : vous gardez l'apport et les frais que l'acheteur a sortis, et vous les placez (moins le dépôt de garantie, rendu en fin de location).</li>
+        <li><strong>Chaque mois</strong> : vous payez votre loyer (+2 % par an) et l'assurance habitation, et vous placez l'écart entre ce que coûte l'achat et ce que coûte la location.</li>
+        <li><strong>Le placement</strong> rapporte 4 % par an net d'impôts dans le scénario moyen (3 % en prudent, 5 % en dynamique), avec intérêts composés chaque mois. Si vous ne placez pas réellement cette différence, louer vous laissera moins que ce qu'affiche le simulateur.</li>
+      </ul>
+
+      <h3>4. D'où viennent les chiffres</h3>
+      <ul class="aol-mlist">
+        <li><strong>Prix au m²</strong> : ventes réelles enregistrées par les notaires, base DVF publiée par l'État (<a href="https://www.data.gouv.fr/datasets/statistiques-dvf/" target="_blank" rel="noopener">Statistiques DVF</a>, data.gouv.fr), médiane des douze derniers mois disponibles par commune, appartements et maisons séparés ; repli sur cinq ans pour les communes où les ventes sont rares. L'ajustement selon la surface vient des ventes détaillées de 2025 (<a href="https://www.data.gouv.fr/datasets/demandes-de-valeurs-foncieres-geolocalisees/" target="_blank" rel="noopener">DVF géolocalisées</a>). L'Alsace et la Moselle ne sont pas dans la base DVF : leurs prix sont des estimations de portails immobiliers, signalées comme telles.</li>
+        <li><strong>Loyers au m²</strong> : <a href="https://www.data.gouv.fr/datasets/carte-des-loyers-indicateurs-de-loyers-dannonce-par-commune-en-2025/" target="_blank" rel="noopener">carte des loyers de l'ANIL</a> (annonces SeLoger et leboncoin, 2025), par commune et par taille de logement (1-2 pièces, 3 pièces et plus, maison), charges comprises, ramenés hors charges.</li>
+        <li><strong>Couverture</strong> : 3 400 communes en saisie directe, 13 000 avec le département (« Mios 33 »), et une moyenne départementale pour les autres.</li>
+      </ul>
+
+      <h3>5. Ce que le simulateur ne fait pas</h3>
+      <p class="btxt">Il ne tient pas compte des aides (PTZ, prêts aidés), des travaux à l'achat, de l'IFI, de la fiscalité d'un bien loué, ni d'un déménagement entre deux logements différents. Pour un propriétaire, il compare acheter ou louer aujourd'hui un logement équivalent ; il ne dit pas s'il faut vendre pour redevenir locataire. Les prix et les loyers sont des moyennes locales : un bien précis peut s'en écarter, et personne ne connaît l'évolution future des prix, d'où les trois scénarios. C'est un ordre de grandeur pour décider, pas un conseil personnalisé.</p>
+      <p class="btxt aol-mdate">Données mises à jour le <span id="aol-methode-maj">23 octobre 2026</span>. Hypothèses par défaut révisées à la même date.</p>
     </div>
   </section>
 
@@ -1777,7 +2319,7 @@
       <p class="btxt">L'erreur classique : comparer un loyer à une mensualité de crédit. En réalité, être propriétaire coûte bien plus que la seule mensualité :</p>
       <div class="cgrid">
         <div class="card"><div class="cnum">1</div><div><h3>Les frais d'entrée</h3><p>Notaire (~7-8 % dans l'ancien), frais d'agence, frais de dossier et de garantie. Plusieurs dizaines de milliers d'euros, perdus instantanément.</p></div></div>
-        <div class="card"><div class="cnum">2</div><div><h3>Les frais récurrents</h3><p>Taxe foncière, charges de copropriété, assurance, et surtout l'entretien (comptez ~1 % de la valeur du bien par an sur le long terme).</p></div></div>
+        <div class="card"><div class="cnum">2</div><div><h3>Les frais récurrents</h3><p>Taxe foncière, charges de copropriété, assurance, et surtout l'entretien (comptez 0,5 à 1 % de la valeur du bien par an sur le long terme).</p></div></div>
         <div class="card"><div class="cnum">3</div><div><h3>Le coût d'opportunité</h3><p>L'apport et les frais immobilisés auraient pu être investis. Un locataire qui investit la différence peut, dans certains cas, faire mieux qu'un propriétaire.</p></div></div>
       </div>
     </div>
@@ -1787,10 +2329,13 @@
     <div class="inn">
       <h2 class="stitle">Questions fréquentes</h2>
       <div class="flist">
-        <details><summary>Ce simulateur tient-il compte de la revente du bien ?</summary><div class="fans">Oui, indirectement : le « patrimoine constitué » correspond à la valeur du bien (avec son appréciation) moins le capital restant dû. C'est ce que vous récupéreriez en revendant, hors frais de vente. Le « coût net de l'achat » déduit ce patrimoine de tout ce que vous avez déboursé.</div></details>
-        <details><summary>Pourquoi la location peut-elle gagner ?</summary><div class="fans">Sur des durées courtes, les frais d'entrée de l'achat (notaire, intérêts) ne sont pas encore amortis. Et si vous investissez l'apport et l'écart de mensualité à un bon rendement, la location devient un choix financièrement défendable. Tout dépend de votre horizon et du rendement de votre épargne.</div></details>
-        <details><summary>Quelle appréciation du bien faut-il indiquer ?</summary><div class="fans">Sur très longue période, l'immobilier français a progressé en moyenne autour de 1 à 2 % par an au-dessus de l'inflation, avec de fortes disparités locales. Restez prudent : une hypothèse de 1 à 2 % est raisonnable, au-delà vous surestimez probablement le gain.</div></details>
-        <details><summary>Et les impôts (plus-value, IFI…) ?</summary><div class="fans">La résidence principale est exonérée de plus-value à la revente. Ce simulateur ne modélise pas l'IFI ni la fiscalité locative : il compare le coût d'usage d'un même bien, acheté ou loué, pour vous donner un ordre de grandeur fiable.</div></details>
+        <details><summary>D'où viennent les prix et les loyers ?</summary><div class="fans">Les prix au m² viennent des ventes réelles enregistrées par les notaires (base DVF publiée par l'État), sur les douze derniers mois, commune par commune, appartements et maisons séparés, avec un ajustement selon la surface (un studio se paie plus cher au m² qu'un grand appartement). Les loyers au m² viennent de la carte des loyers de l'ANIL (annonces SeLoger et leboncoin, 2025), par commune et par taille de logement, ramenés hors charges. L'Alsace et la Moselle n'étant pas dans la base DVF, leurs prix sont des estimations de portails immobiliers, signalées comme telles.</div></details>
+        <details><summary>Pourquoi comparer un logement « équivalent » plutôt que celui que je vise ?</summary><div class="fans">Parce que la question « acheter ou louer » n'a de sens qu'à logement égal. Comparer un loyer de 600 € à un achat de 400 000 € ne dit rien : vous ne compareriez pas la même chose. Le simulateur part de votre logement actuel (sa ville, sa surface) et calcule ce qu'il coûterait à acheter ou à louer aujourd'hui. Si vous visez un bien précis, saisissez son prix dans « Ajuster ».</div></details>
+        <details><summary>Comment choisir la durée sur la frise ?</summary><div class="fans">Vous n'avez pas à la connaître : la réponse principale est le nombre d'années à partir duquel acheter devient plus intéressant. Le point « Vous » sert à tester une durée qui vous ressemble (une mutation possible dans cinq ans, un projet de famille dans dix) et à voir ce que chaque option vous laisserait à cette date. En France, un propriétaire garde son logement en moyenne une dizaine d'années.</div></details>
+        <details><summary>Ce simulateur tient-il compte de la revente du bien ?</summary><div class="fans">Oui. « Ce qu'il vous reste » en achetant correspond à la valeur du bien à la date choisie, moins les frais de revente (5 % par défaut), moins ce qu'il reste à rembourser, et moins l'indemnité de remboursement anticipé si vous revendez avant la fin du prêt. Côté location, c'est l'apport et les frais que vous n'avez pas dépensés, plus l'écart mensuel placé, le tout avec les intérêts.</div></details>
+        <details><summary>Pourquoi la location peut-elle gagner ?</summary><div class="fans">Sur des durées courtes, les frais d'entrée de l'achat (notaire, garantie du prêt, intérêts) ne sont pas encore amortis. Et si vous placez votre apport, les frais économisés et l'écart mensuel entre le coût de l'achat et votre loyer à un bon rendement net, la location devient un choix financièrement défendable. Le simulateur suppose que vous placez vraiment cette différence chaque mois : si vous la dépensez, le calcul ne tient plus.</div></details>
+        <details><summary>Quelle hausse des prix faut-il retenir ?</summary><div class="fans">Sur très longue période, l'immobilier français a progressé en moyenne autour de 1 à 2 % par an au-dessus de l'inflation, avec de fortes disparités locales. Le scénario moyen retient +2 % par an pour le bien et 4 % net pour l'épargne ; les scénarios prudent (+1 % et 3 %) et dynamique (+3 % et 5 %) montrent l'écart que cela produit. Au-delà de 3 % par an, vous surestimez probablement le gain.</div></details>
+        <details><summary>Et les impôts (plus-value, IFI…) ?</summary><div class="fans">La résidence principale est exonérée de plus-value à la revente et il n'y a plus de taxe d'habitation. Le rendement de l'épargne est à saisir net d'impôts (PEA ou assurance vie après quelques années : proche du brut ; compte-titres : brut × 0,7 environ). Le simulateur ne modélise pas l'IFI ni la fiscalité locative : il compare le coût d'usage d'un même bien, acheté ou loué.</div></details>
       </div>
     </div>
   </section>
@@ -1801,57 +2346,75 @@
 (function(){
   'use strict';
   var $=function(id){return document.getElementById(id);};
-  var resultsSection=$('mric-results');
+  var resultsSection=$('aol-detail');
+  var cont=document.querySelector('.mric-calc.aol4');
+  var YEARS=30;
   var chartCanvas=$('mric-chart');
   function num(id){var el=document.getElementById("mric-"+id);if(!el)return 0;var v=parseFloat(String(el.value).replace(/[\s  ]/g,'').replace(',','.'));return isNaN(v)?0:Math.max(0,v);}
   function formatEuro(n){return Math.round(n).toLocaleString('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:0,maximumFractionDigits:0});}
   function formatCompact(n){var sg=n<0?'−':'';n=Math.abs(n);if(n>=1e6)return sg+(n/1e6).toFixed(1).replace('.',',')+' M€';if(n>=1e3)return sg+Math.round(n/1e3)+' k€';return sg+Math.round(n)+' €';}
 
-  function compute(){
-    var prix=num('prix'),apport=num('apport'),notaire=num('notaire'),agence=num('agence');
+  function compute(o){
+    o=o||{};
+    var prix=num('prix'),apport=num('apport'),notaire=num('notaire'),agence=num('agence'),revente=num('revente'),fraisCredit=num('fraisCredit'),ira=num('ira');
     var taux=num('taux'),duree=Math.round(num('duree')),assur=num('assurance');
-    var taxe=num('taxe'),entretien=num('entretien'),appr=num('appreciation');
+    var taxe=num('taxe'),copro=num('copro'),entretien=num('entretien');
+    var appr=(o.appr!=null)?o.appr:num('appreciation');
     var loyer=num('loyer'),evol=num('evolLoyer'),depot=num('depot'),assurHab=num('assuranceHab');
-    var rdt=num('rendement');
-    if(prix<=0||duree<=0)return null;
+    var rdt=(o.rdt!=null)?o.rdt:num('rendement'), infl=num('inflation');
+    var horizon=Math.round(num('horizon'));
     var cash=!!(document.getElementById("mric-cash")&&document.getElementById("mric-cash").checked);
+    if(prix<=0||horizon<=0)return null;
+    if(!cash&&duree<=0)return null;
+    horizon=Math.min(horizon,40);
+    var H=Math.min(40,Math.max(horizon,cash?0:duree,o.Hmin||0));   // années simulées (frise, graphique et tableau)
     var loan=cash?0:Math.max(0,prix-apport);
-    var entryCash=(cash?prix:apport)+notaire+agence;
-    var im=taux/12/100, n=duree*12;
-    var mens = (cash||loan<=0) ? 0 : (im===0 ? (n>0?loan/n:0) : loan*im/(1-Math.pow(1+im,-n)));
+    var fraisPret=loan*fraisCredit/100;   // garantie (caution, hypothèque) et frais de dossier, payés à l'achat
+    var entryCash=(cash?prix:apport)+notaire+agence+fraisPret;
+    var im=taux/12/100, n=cash?0:duree*12;
+    var mens=(loan<=0)?0:(im===0?loan/n:loan*im/(1-Math.pow(1+im,-n)));
     var assurAn=assur/100*loan;
     var g=rdt/100/12;
-    var ownerOutM = mens + (taxe+entretien+assurAn)/12;
-    // Patrimoines : le locataire place ce que le proprio immobilise à l'entrée (apport+frais),
-    // puis chaque mois celui qui paie le moins place la différence (rendement rdt).
-    var renterPort = Math.max(0, entryCash - depot);
-    var ownerPort = 0;
-    var rentM = loyer;
-    var rows=[{y:0, achat:(prix-loan)+ownerPort, location:renterPort+depot, valeur:prix, equity:prix-loan}];
-    for(var y=1;y<=duree;y++){
+    // Patrimoines : le locataire place ce que le propriétaire immobilise à l'entrée (apport + frais),
+    // puis chaque mois celui qui paie le moins place la différence, au rendement net rdt.
+    // Les charges du propriétaire et l'assurance habitation montent chaque année (infl), le loyer aussi (evol).
+    var renterPort=Math.max(0,entryCash-depot), ownerPort=0;
+    var rentM=loyer, taxeY=taxe, coproY=copro, entrY=entretien, habY=assurHab;
+    var netValue=function(v){return v*(1-revente/100);};
+    var rows=[{y:0, achat:netValue(prix)-loan, location:renterPort+depot, valeur:prix, equity:netValue(prix)-loan, capRest:loan, ownerPort:0, renterPort:renterPort}];
+    var ownerOutM1=0, renterOutM1=0, interets=0;
+    for(var y=1;y<=H;y++){
+      var ownerFixM=(taxeY+coproY+entrY+habY)/12, renterFixM=habY/12;
       for(var k=0;k<12;k++){
-        var renterOutM = rentM + assurHab/12;
+        var m=(y-1)*12+k+1;
+        var credit=(m<=n)?(mens+assurAn/12):0;
+        var ownerOutM=credit+ownerFixM, renterOutM=rentM+renterFixM;
+        if(y===1&&k===0){ownerOutM1=ownerOutM;renterOutM1=renterOutM;}
         renterPort*=(1+g); ownerPort*=(1+g);
         var diff=ownerOutM-renterOutM;
         if(diff>0) renterPort+=diff; else ownerPort+=-diff;
       }
-      rentM*=(1+evol/100);
+      rentM*=(1+evol/100); taxeY*=(1+infl/100); coproY*=(1+infl/100); entrY*=(1+infl/100); habY*=(1+infl/100);
       var valeur=prix*Math.pow(1+appr/100,y);
       var capRest;
-      if(y>=duree)capRest=0;
+      if(cash||y>=duree)capRest=0;
       else if(im===0)capRest=Math.max(0,loan-mens*y*12);
       else capRest=Math.max(0,loan*Math.pow(1+im,y*12)-mens*((Math.pow(1+im,y*12)-1)/im));
-      var equity=valeur-capRest;
-      rows.push({y:y, achat:equity+ownerPort, location:renterPort+depot, valeur:valeur, equity:equity});
+      var penal=(capRest>0&&y<duree)?Math.min(capRest*im*6,capRest*ira/100):0;   // indemnité de remboursement anticipé si revente avant la fin du prêt
+      var equity=netValue(valeur)-capRest-penal;
+      rows.push({y:y, achat:equity+ownerPort, location:renterPort+depot, valeur:valeur, equity:equity, capRest:capRest, ownerPort:ownerPort, renterPort:renterPort});
     }
+    if(!cash&&loan>0) interets=mens*n-loan;
     var bascule=null;
-    for(var b=1;b<=duree;b++){ if(rows[b].achat>=rows[b].location){bascule=b;break;} }
-    return {duree:duree,mens:mens,rdt:rdt,cash:cash,rows:rows,bascule:bascule,
-      buyerNW:rows[duree].achat, renterNW:rows[duree].location,
-      equityFinal:rows[duree].equity, valeurFinal:rows[duree].valeur};
+    for(var b=1;b<=H;b++){ if(rows[b].achat>=rows[b].location){bascule=b;break;} }
+    var at=rows[horizon];
+    return {horizon:horizon,H:H,duree:duree,mens:mens,rdt:rdt,appr:appr,cash:cash,rows:rows,bascule:bascule,
+      buyerNW:at.achat, renterNW:at.location, equityH:at.equity, valeurH:at.valeur,
+      ownerOutM1:ownerOutM1, renterOutM1:renterOutM1, assurM:(n>0?assurAn/12:0), chargesM1:(taxe+copro+entretien+assurHab)/12, habM1:assurHab/12,
+      entryCash:entryCash, interets:interets, loan:loan, g:g, depot:depot, revente:revente, fraisPret:fraisPret, notaire:notaire, agence:agence};
   }
 
-  function drawChart(rows,bascule){
+  function drawChart(rows,bascule,horizon){
     var ctx=chartCanvas.getContext('2d');
     var dpr=window.devicePixelRatio||1;
     var rect=chartCanvas.getBoundingClientRect();
@@ -1878,79 +2441,150 @@
     ctx.beginPath();trace(achat);for(var r=loc.length-1;r>=0;r--){ctx.lineTo(loc[r].x,loc[r].y);}ctx.closePath();
     var grad=ctx.createLinearGradient(pL,0,pL+pW,0);grad.addColorStop(0,"rgba(0,245,192,0.02)");grad.addColorStop(1,"rgba(0,245,192,0.16)");
     ctx.fillStyle=grad;ctx.fill();
-    if(bascule){var bx=X(bascule);ctx.setLineDash([5,4]);ctx.strokeStyle="rgba(255,255,255,0.28)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bx,pT);ctx.lineTo(bx,pT+pH);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="rgba(230,240,255,0.8)";ctx.textAlign="center";ctx.textBaseline="top";ctx.font="700 10px "+FONT;ctx.fillText("Bascule",bx,pT-2);}
+    // Repères verticaux : traits en pointillés, étiquettes en bas du tracé (jamais sur la légende), décalées si elles se touchent
+    var narrow=w<480, labels=[];
+    function marker(idx,label,col){var bx=X(idx);ctx.setLineDash([5,4]);ctx.strokeStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bx,pT);ctx.lineTo(bx,pT+pH);ctx.stroke();ctx.setLineDash([]);labels.push({x:bx,t:label});}
+    if(horizon&&horizon<n) marker(horizon,narrow?"Vous":"Vous ("+horizon+" ans)","rgba(255,255,255,0.45)");
+    if(bascule&&bascule!==horizon) marker(bascule,"Bascule","rgba(255,255,255,0.22)");
+    ctx.font="700 10px "+FONT;ctx.textBaseline="bottom";ctx.textAlign="center";
+    var prev=null;
+    labels.forEach(function(l){var tw=ctx.measureText(l.t).width;var yy=pT+pH-4;if(prev&&Math.abs(l.x-prev.x)<(tw+prev.w)/2+6)yy=prev.y-13;var lx2=Math.min(Math.max(l.x,pL+tw/2+2),pL+pW-tw/2-2);ctx.fillStyle="rgba(10,14,22,0.75)";ctx.fillRect(lx2-tw/2-3,yy-11,tw+6,12);ctx.fillStyle="rgba(230,240,255,0.85)";ctx.fillText(l.t,lx2,yy);prev={x:l.x,w:tw,y:yy};});
     ctx.beginPath();trace(loc);ctx.strokeStyle=ORANGE;ctx.lineWidth=2.5;ctx.lineJoin="round";ctx.lineCap="round";ctx.stroke();
     ctx.save();ctx.shadowColor="rgba(0,245,192,0.5)";ctx.shadowBlur=14;ctx.beginPath();trace(achat);ctx.strokeStyle=TEAL;ctx.lineWidth=3;ctx.lineJoin="round";ctx.lineCap="round";ctx.stroke();ctx.restore();
-    var ae=achat[n-1],le=loc[n-1];
+    var hi=(horizon&&horizon<n)?horizon:n-1;
+    var ae=achat[hi],le=loc[hi];
     ctx.fillStyle="rgba(0,245,192,0.18)";ctx.beginPath();ctx.arc(ae.x,ae.y,9,0,7);ctx.fill();ctx.fillStyle=TEAL;ctx.beginPath();ctx.arc(ae.x,ae.y,4.5,0,7);ctx.fill();
     ctx.fillStyle="rgba(255,159,67,0.18)";ctx.beginPath();ctx.arc(le.x,le.y,9,0,7);ctx.fill();ctx.fillStyle=ORANGE;ctx.beginPath();ctx.arc(le.x,le.y,4.5,0,7);ctx.fill();
     ctx.font="800 13px "+FONT;ctx.textAlign="left";ctx.textBaseline="middle";
-    ctx.fillStyle=TEAL;ctx.fillText(formatCompact(rows[n-1].achat),ae.x+12,ae.y);
-    ctx.fillStyle=ORANGE;ctx.fillText(formatCompact(rows[n-1].location),le.x+12,le.y);
+    var tx=Math.min(ae.x+12,pL+pW+6), ay=ae.y, ly2=le.y;
+    if(Math.abs(ay-ly2)<15){var mid=(ay+ly2)/2;ay=mid+(ae.y<=le.y?-8:8);ly2=mid+(ae.y<=le.y?8:-8);}
+    ctx.fillStyle=TEAL;ctx.fillText(formatCompact(rows[hi].achat),tx,ay);
+    ctx.fillStyle=ORANGE;ctx.fillText(formatCompact(rows[hi].location),tx,ly2);
     ctx.fillStyle="rgba(197,213,232,0.55)";ctx.textAlign="center";ctx.textBaseline="top";ctx.font="600 10px "+FONT;
-    var xi=Math.max(1,Math.round((n-1)/6));
-    for(var x=0;x<n;x++){if(x%xi!==0&&x!==n-1)continue;ctx.fillText(rows[x].y===0?"Départ":"An "+rows[x].y,X(x),pT+pH+10);}
+    var xi=Math.max(1,Math.round((n-1)/(narrow?3:6)));
+    for(var x=0;x<n;x++){if(x%xi!==0&&x!==n-1)continue;if(x!==n-1&&n-1-x<xi*0.6)continue;ctx.fillText(rows[x].y===0?"Départ":"An "+rows[x].y,X(x),pT+pH+10);}
     var lx=pL+2,ly=pT+1;ctx.textAlign="left";ctx.textBaseline="middle";ctx.font="700 11px "+FONT;
     ctx.fillStyle=TEAL;ctx.beginPath();ctx.arc(lx+4,ly+5,4,0,7);ctx.fill();ctx.fillStyle="rgba(230,240,255,0.9)";ctx.fillText("Acheter",lx+14,ly+6);
     ctx.fillStyle=ORANGE;ctx.beginPath();ctx.arc(lx+4,ly+21,4,0,7);ctx.fill();ctx.fillStyle="rgba(230,240,255,0.9)";ctx.fillText("Louer + investir",lx+14,ly+22);
   }
 
+  function pct(v){return String(Math.round(v*10)/10).replace('.',',')+' %';}
+  function ans(y){return y+(y>1?' ans':' an');}
+
+  function renderSens(d){
+    var rdtBox=$('mric-sens-rdt'),apprBox=$('mric-sens-appr');
+    if(!rdtBox||!apprBox)return;
+    function chips(box,key,values,current,unit){
+      box.innerHTML='';
+      values.forEach(function(v){
+        var o={};o[key]=v;var r=compute(o);if(!r)return;
+        var e=r.buyerNW-r.renterNW, win=e>=0;
+        var b=document.createElement('button');b.type='button';b.className='mric-chip'+(Math.abs(v-current)<0.05?' on':'');
+        b.innerHTML='<span class="k">'+String(v).replace('.',',')+' '+unit+'</span><span class="v '+(win?'mric-teal':'mric-orange')+'">'+(win?'Acheter':'Louer')+' +'+formatCompact(Math.abs(e))+'</span>';
+        b.addEventListener('click',function(){var el=$(key==='rdt'?'mric-rendement':'mric-appreciation');if(el){el.value=String(v);calculer();}});
+        box.appendChild(b);
+      });
+    }
+    var rv=[Math.max(0,Math.round(d.rdt)-2),Math.round(d.rdt),Math.round(d.rdt)+2];
+    if(rv[0]===rv[1])rv=[0,2,4];
+    var av=[0,1,2,3].indexOf(Math.round(d.appr))>=0?[0,2,3]:[Math.max(0,Math.round(d.appr)-1),Math.round(d.appr),Math.round(d.appr)+1];
+    if(av.indexOf(Math.round(d.appr))<0)av=[Math.max(0,Math.round(d.appr)-1),Math.round(d.appr),Math.round(d.appr)+1];
+    chips(rdtBox,'rdt',rv,d.rdt,'% / an');
+    chips(apprBox,'appr',av,d.appr,'% / an');
+  }
+
+  function setW(id,w){var el=$(id);if(el)el.style.width=Math.max(2,Math.round(w*100))+'%';}
+  function txt(id,v){var el=$(id);if(el)el.textContent=v;}
   function calculer(){
-    var d=compute();
+    var d=(num('prix')>0&&num('loyer')>0)?compute({Hmin:YEARS}):null;
+    var empty=$('aol6-empty'), res=$('aol6-res'), mini=$('aol-mini');
     if(!d){
-      $('mric-verdict-eyebrow').textContent='À compléter';
-      $('mric-verdict-num').textContent='—';
-      $('mric-verdict-num').style.color='var(--fg-3)';
-      $('mric-verdict-sub').innerHTML='Indiquez au moins le <strong>prix d\'achat</strong> et la <strong>durée du prêt</strong> pour lancer le calcul.';
-      resultsSection.classList.add('mric-visible');
+      empty.hidden=false; res.hidden=true; if(mini)mini.hidden=true;
+      cont.classList.remove('louer'); resultsSection.classList.remove('mric-visible'); resultsSection.hidden=true;
       return;
     }
-    var ecart=d.buyerNW-d.renterNW;
-    var achatGagne=ecart>=0;
-    var rdtTxt=d.rdt.toString().replace('.',',')+' %';
-    var eyeb=$('mric-verdict-eyebrow'),numEl=$('mric-verdict-num'),subEl=$('mric-verdict-sub');
-    if(d.bascule){
-      eyeb.textContent="Acheter devient gagnant après";
-      numEl.textContent=d.bascule+(d.bascule>1?' ans':' an');
-      numEl.style.color="var(--accent)";
-    }else{
-      eyeb.textContent="Sur "+d.duree+" ans";
-      numEl.textContent="Louer + investir gagne";
-      numEl.style.color="var(--orange)";
-    }
-    subEl.innerHTML = achatGagne
-      ? "Sur "+d.duree+" ans, acheter vous laisse <strong>"+formatEuro(Math.abs(ecart))+" de patrimoine en plus</strong> que louer en plaçant votre épargne à "+rdtTxt+"."
-      : "Sur "+d.duree+" ans, louer en plaçant votre épargne à "+rdtTxt+" vous laisse <strong>"+formatEuro(Math.abs(ecart))+" de patrimoine en plus</strong> qu'acheter.";
-
-    $('mric-cout-achat').textContent=formatEuro(d.buyerNW);
-    $('mric-cout-location').textContent=formatEuro(d.renterNW);
-    var ec=$('mric-patrimoine');ec.textContent=formatEuro(Math.abs(ecart));ec.style.color=achatGagne?'var(--accent)':'var(--orange)';
-
-    $('mric-summary').innerHTML = (d.bascule
-        ? "À partir de la <strong>"+d.bascule+(d.bascule>1?'e':'re')+" année</strong>, le patrimoine que vous constituez en achetant dépasse celui que vous auriez en louant et en plaçant votre épargne à "+rdtTxt+". "
-        : "Sur cet horizon de <strong>"+d.duree+" ans</strong>, louer en plaçant votre épargne à "+rdtTxt+" reste plus avantageux : le point de bascule n'est pas atteint. ")
-      + "Au bout de <strong>"+d.duree+" ans</strong>, vous auriez <strong>"+formatEuro(d.buyerNW)+"</strong> de patrimoine net en achetant (dont un bien valant "+formatEuro(d.valeurFinal)+"), contre <strong>"+formatEuro(d.renterNW)+"</strong> en louant + investissant. "
-      + "<strong style=\"color:"+(achatGagne?'var(--accent)':'var(--orange)')+"\">"+(achatGagne?"Acheter":"Louer")+" est gagnant de "+formatEuro(Math.abs(ecart))+".</strong>";
-
+    empty.hidden=true; res.hidden=false; if(mini)mini.hidden=false; resultsSection.hidden=false;
+    var ecart=d.buyerNW-d.renterNW, achatGagne=ecart>=0, hz=d.horizon, b=d.bascule;
+    cont.classList.toggle('louer',!achatGagne);
+    // phrase
+    var sent;
+    if(!b) sent="Sur "+ans(YEARS)+", <span class=\"l\">louer</span> reste plus intéressant qu'acheter, avec ces hypothèses.";
+    else if(b<=1) sent="<span class=\"a\">Achetez</span> : avec ces hypothèses, l'achat l'emporte dès la première année.";
+    else if(sit()==='proprietaire') sent="Pour un logement comme le vôtre, <span class=\"a\">acheter</span> devient gagnant à partir de <span class=\"n\">"+ans(b)+"</span>.<br>Vous y resterez combien de temps au total&nbsp;?";
+    else sent="Moins de <span class=\"n\">"+ans(b)+"</span>&nbsp;? <span class=\"l\">Louez.</span><br><span class=\"n\">"+ans(b)+"</span> ou plus&nbsp;? <span class=\"a\">Achetez.</span>";
+    $('aol6-sentence').innerHTML=sent;
+    var dP=compute({appr:1,rdt:3,Hmin:YEARS}), dD=compute({appr:3,rdt:5,Hmin:YEARS});
+    function bTxt(x){return x&&x.bascule?(x.bascule<=1?"tout de suite":ans(x.bascule)):"plus de "+ans(YEARS);}
+    var lo=dD&&dD.bascule?dD.bascule:YEARS+1, hi=dP&&dP.bascule?dP.bascule:YEARS+1;
+    $('aol9-range').innerHTML = (lo===hi) ? "" : "Personne ne connaît l'avenir des prix : avec un marché calme (+1 % par an, épargne à 3 %) la bascule serait à <b>"+bTxt(dP)+"</b>, avec un marché dynamique (+3 %, épargne à 5 %) à <b>"+bTxt(dD)+"</b>. Scénario moyen affiché ; modifiable dans « Ajuster ».";
+    // frise
+    var zl=$('aol6-z-louer'), za=$('aol6-z-acheter'), flag=$('aol6-flag');
+    var pctL = !b ? 100 : (b<=1 ? 0 : (b-1)/(YEARS-1)*100);
+    zl.style.flex='0 0 '+pctL+'%'; zl.classList.toggle('alone',!b); za.hidden=!b; zl.hidden=(b!=null&&b<=1);
+    if(b&&b>1&&b<=YEARS){flag.hidden=false;flag.style.left=pctL+'%';$('aol6-flag-n').textContent=ans(b);}else{flag.hidden=true;}
+    var youT = achatGagne
+      ? "À "+ans(hz)+", acheter vous laisse <b class=\"a\">"+formatEuro(Math.abs(ecart))+" de plus</b> que louer."
+      : "À "+ans(hz)+", louer vous laisse <b class=\"l\">"+formatEuro(Math.abs(ecart))+" de plus</b> qu'acheter.";
+    $('aol6-you-t').innerHTML=youT; $('aol6-you-tag').innerHTML=(sit()==='proprietaire'?"Au total&nbsp;: ":"Vous&nbsp;: ")+ans(hz);
+    var note=$('aol7-note');
+    if(note){ if(sit()==='proprietaire'){ note.hidden=false; note.textContent="Le calcul compare acheter ou louer aujourd'hui un logement équivalent au vôtre. Il ne dit pas s'il faut vendre pour redevenir locataire : frais de vente déjà engagés, crédit en cours et plus-value changeraient la question."; } else note.hidden=true; }
+    // le compte, à la durée choisie
+    var at=d.rows[hz], months=hz*12, equityGain=(at.equity-d.rows[0].equity)/hz;
+    var initPlaced=Math.max(0,d.entryCash-d.depot)*Math.pow(1+d.g,months), monthlyPlaced=Math.max(0,at.renterPort-initPlaced);
+    var frais=at.valeur*d.revente/100;
+    txt('aol9-h1',ans(hz));
+    txt('aol9-a-sub',(d.cash?"Vous avez sorti "+formatEuro(d.entryCash)+" le jour J":"Vous avez sorti "+formatEuro(d.entryCash)+" le jour J (apport, notaire"+(d.agence>0?", agence":"")+", frais du crédit), puis payé "+formatEuro(d.ownerOutM1)+" par mois (crédit, assurance, charges)"));
+    txt('aol9-a1-l',"Le logement vaudra alors"); txt('aol9-a1',formatEuro(at.valeur));
+    var penalH=(at.capRest>0&&hz<d.duree)?Math.min(at.capRest*(num('taux')/12/100)*6,at.capRest*num('ira')/100):0;
+    var a15=$('aol9-a15-row'); if(a15){ if(d.loan>0){a15.hidden=false;txt('aol9-a15-l',"Capital déjà remboursé sur "+formatEuro(d.loan)+" empruntés : votre épargne forcée");txt('aol9-a15',formatEuro(Math.max(0,d.loan-at.capRest)));} else a15.hidden=true; }
+    $('aol9-a2').textContent=(at.capRest>0?"− "+formatEuro(at.capRest+penalH):"0 €"); txt('aol9-a2-l',at.capRest>0?(penalH>0?"Il restera à rembourser, pénalité comprise":"Il restera à rembourser"):"Crédit entièrement remboursé");
+    $('aol9-a3').textContent="− "+formatEuro(frais);
+    var a4=$('aol9-a4-row'); if(at.ownerPort>50){a4.hidden=false;txt('aol9-a4',"+ "+formatEuro(at.ownerPort));}else a4.hidden=true;
+    txt('aol9-a-tot',formatEuro(at.achat));
+    txt('aol9-l-sub',"Vous avez gardé vos "+formatEuro(d.entryCash)+" et payé "+formatEuro(d.renterOutM1)+" par mois (loyer et assurance)");
+    txt('aol9-l1-l',formatEuro(Math.max(0,d.entryCash-d.depot))+" placés à "+pct(d.rdt)+" net (vos "+formatEuro(d.entryCash)+" moins le dépôt de garantie), devenus"); txt('aol9-l1',formatEuro(initPlaced));
+    var dm=d.ownerOutM1-d.renterOutM1, dm2=dm;
+    txt('aol9-l2-l',dm2>0?formatEuro(dm2)+" par mois d'écart, placés, devenus":"Rien à placer chaque mois (le loyer coûte plus que l'achat)"); txt('aol9-l2',formatEuro(monthlyPlaced));
+    txt('aol9-l3',formatEuro(d.depot));
+    txt('aol9-l-tot',formatEuro(at.location));
+    $('aol9-diff').innerHTML = achatGagne
+      ? "Au bout de "+ans(hz)+", <span class=\"a\">acheter vous laisse "+formatEuro(Math.abs(ecart))+" de plus</span>."
+      : "Au bout de "+ans(hz)+", <span class=\"l\">louer vous laisse "+formatEuro(Math.abs(ecart))+" de plus</span>.";
+    var how;
+    if(b&&b>1){ var yb=d.rows[b], yb1=d.rows[Math.max(1,b-3)]; var gain=((yb.achat-yb.location)-(yb1.achat-yb1.location))/(b-Math.max(1,b-3));
+      how="Pourquoi ça bascule : les frais d'achat et de revente se paient une fois, alors que chaque année le crédit se rembourse et le logement prend de la valeur. L'acheteur rattrape environ "+formatEuro(Math.max(0,gain))+" par an sur le locataire, et passe devant à partir de "+ans(b)+"."; }
+    else if(b&&b<=1) how="Ici l'achat l'emporte tout de suite : le loyer est élevé par rapport au prix, les frais d'achat sont vite rattrapés.";
+    else how="Ici, même sur "+ans(YEARS)+", ce que rapporte l'épargne placée dépasse ce que le logement rapporte en valeur et en crédit remboursé : les frais d'entrée ne sont jamais rattrapés.";
+    $('aol9-how').textContent=how;
+    // barre mobile
+    txt('aol-m-v', !b ? "Louer gagne sur "+ans(YEARS) : (b<=1 ? "Acheter gagne dès l'achat" : "Achetez à partir de "+ans(b)));
+    txt('aol-m-e',"À "+ans(hz)+" : "+(achatGagne?"acheter":"louer")+" +"+formatCompact(Math.abs(ecart)));
+    // détail
+    $('mric-chart-note').textContent="Sur "+ans(d.H)+" · repère « Vous » à "+ans(hz);
+    $('mric-m-proprio').textContent=formatEuro(d.ownerOutM1)+' /mois';
+    $('mric-m-proprio-det').innerHTML=(d.cash?'':'Crédit '+formatEuro(d.mens)+' + assurance '+formatEuro(d.assurM)+'<br>')+'Taxe foncière, copropriété, entretien, assurance habitation : '+formatEuro(d.chargesM1);
+    $('mric-m-loc').textContent=formatEuro(d.renterOutM1)+' /mois';
+    $('mric-m-loc-det').innerHTML='Loyer '+formatEuro(d.renterOutM1-d.habM1)+' + assurance habitation '+formatEuro(d.habM1);
+    $('mric-m-foot').innerHTML = (dm>0
+      ? "Le locataire paie <strong>"+formatEuro(dm)+" de moins par mois</strong> : le simulateur suppose qu'il place cette différence, en plus de l'apport et des frais d'achat qu'il n'a pas déboursés ("+formatEuro(d.entryCash)+")."
+      : "Le propriétaire paie <strong>"+formatEuro(-dm)+" de moins par mois</strong> que le locataire : le simulateur suppose qu'il place cette différence.")
+      + (d.cash?'':' Intérêts versés sur toute la durée du prêt : '+formatEuro(d.interets)+'.');
     var tb=$('mric-table-body');tb.innerHTML='';
-    for(var y=1;y<=d.duree;y++){
+    for(var y=1;y<=d.H;y++){
       var rw=d.rows[y];var e=rw.achat-rw.location;
       var tr=document.createElement('tr');
-      if(d.bascule&&y===d.bascule)tr.className='mric-row-bascule';
-      tr.innerHTML='<td>'+y+'</td><td>'+formatEuro(rw.achat)+'</td><td>'+formatEuro(rw.location)+'</td><td>'+formatEuro(rw.valeur)+'</td><td>'+(e>=0?'+ ':'− ')+formatEuro(Math.abs(e))+'</td>';
+      var cls=[];if(b&&y===b)cls.push('mric-row-bascule');if(y===hz)cls.push('mric-row-horizon');tr.className=cls.join(' ');
+      tr.innerHTML='<td>'+y+(y===hz?' ★':'')+'</td><td>'+formatEuro(rw.achat)+'</td><td>'+formatEuro(rw.location)+'</td><td>'+formatEuro(rw.valeur)+'</td><td>'+(e>=0?'+ ':'− ')+formatEuro(Math.abs(e))+'</td>';
       tb.appendChild(tr);
     }
-
     resultsSection.classList.add('mric-visible');
-    var anims=resultsSection.querySelectorAll('.mric-anim');
-    anims.forEach(function(el){el.style.animation='none';el.offsetHeight;el.style.animation='';});
-
+    var presetEl=document.querySelector('#aol-seg-preset button.on');
     window.__mricAcheterData={
-      inputs:{prix:num('prix'),apport:num('apport'),notaire:num('notaire'),agence:num('agence'),taux:num('taux'),duree:d.duree,assurance:num('assurance'),taxe:num('taxe'),entretien:num('entretien'),appreciation:num('appreciation'),loyer:num('loyer'),evolLoyer:num('evolLoyer'),depot:num('depot'),assuranceHab:num('assuranceHab'),rendementEpargne:d.rdt,achatCash:d.cash},
-      results:{mensualite:d.mens,patrimoineAchat:d.buyerNW,patrimoineLocation:d.renterNW,valeurFinale:d.valeurFinal,pointBascule:d.bascule,verdict:achatGagne?'achat':'location',ecart:Math.abs(ecart)},
-      meta:{calculator:'acheter-ou-louer',version:'v2',timestamp:new Date().toISOString()}
+      inputs:{situation:sit(),commune:commune?commune.n:'',insee:commune?commune.c:'',surface:num('surface'),typeLogement:(typeLogEl||{}).value||'appartement',prixM2Commune:commune?(((typeLogEl||{}).value==='maison')?(commune.pm||commune.pa):(commune.pa||commune.pm)):0,prixDeduit:!prixManuel,loyerDeduit:(sit()!=='locataire'&&!loyerManuel),prix:num('prix'),typeBien:($('mric-type')||{}).value||'ancien',apport:num('apport'),notaire:num('notaire'),agence:num('agence'),revente:num('revente'),taux:num('taux'),duree:d.duree,assurance:num('assurance'),taxe:num('taxe'),copro:num('copro'),entretien:num('entretien'),appreciation:d.appr,loyer:num('loyer'),evolLoyer:num('evolLoyer'),depot:num('depot'),assuranceHab:num('assuranceHab'),inflation:num('inflation'),rendementEpargne:d.rdt,achatCash:d.cash,horizon:hz,scenario:presetEl?presetEl.textContent.split(/\s/)[0].toLowerCase():'personnalise'},
+      results:{fraisCredit:num('fraisCredit'),ira:num('ira'),mensualite:d.mens,coutMensuelProprio:d.ownerOutM1,coutMensuelLocataire:d.renterOutM1,interetsTotaux:d.interets,coutEntree:d.entryCash,gainAnnuelProprio:equityGain,horizon:hz,horizonSimule:d.H,patrimoineAchat:d.buyerNW,patrimoineLocation:d.renterNW,valeurFinale:d.valeurH,pointBascule:b,verdict:achatGagne?'achat':'location',ecart:Math.abs(ecart)},
+      meta:{calculator:'acheter-ou-louer',version:'v8',timestamp:new Date().toISOString()}
     };
-    setTimeout(function(){drawChart(d.rows,d.bascule);},250);
+    clearTimeout(window.__aolChartT); window.__aolChartT=setTimeout(function(){drawChart(d.rows,b,hz);},120);
   }
 
   // ===== Share =====
@@ -1968,20 +2602,181 @@
   document.querySelectorAll('.mric-share-btn[data-platform]').forEach(function(btn){btn.addEventListener('click',function(){var p=this.getAttribute('data-platform');if(p==='copy'){copyLink()}else{shareTo(p)}});});
 
   var resizeTimer;
-  window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(resultsSection.classList.contains('mric-visible'))calculer();},200);});
+  window.addEventListener('resize',function(){clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){if(resultsSection.classList.contains('mric-visible')&&!$('aol6-res').hidden)calculer();},200);});
   var obs=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('mric-visible');});},{threshold:0.15,rootMargin:'0px 0px -40px 0px'});
   document.querySelectorAll('.mric-calc section').forEach(function(s2){obs.observe(s2);});
 
-  var cashCb=document.getElementById('mric-cash');
-  if(cashCb){
-    var cont=document.querySelector('.mric-calc.v5')||document.querySelector('.mric-calc');
-    var dureeLbl=document.querySelector('label[for="mric-duree"]');
-    function syncCash(){ cont.classList.toggle('mric-cash',cashCb.checked); if(dureeLbl) dureeLbl.textContent=cashCb.checked?'Durée de détention':'Durée du prêt'; }
-    cashCb.addEventListener('change',function(){syncCash();calculer();});
-    syncCash();
+  // ----- situation, ville, surface, type → bien équivalent -----
+  var SIT={locataire:{ville:"Votre ville",surf:"Sa surface",loyer:"Votre loyer",hint:"Hors charges",empty:"Indiquez votre ville, la surface de votre logement et votre loyer : votre réponse s'affiche ici, sans rien envoyer."},
+           heberge:{ville:"La ville où vous cherchez",surf:"La surface qu'il vous faut",loyer:"",hint:"",empty:"Indiquez la ville et la surface qu'il vous faut : votre réponse s'affiche ici, sans rien envoyer."},
+           proprietaire:{ville:"Votre ville",surf:"La surface de votre logement",loyer:"",hint:"",empty:"Indiquez votre ville et la surface de votre logement : votre réponse s'affiche ici, sans rien envoyer."}};
+  var CHARGES={appartement:0.88,maison:0.94};   // loyers ANIL charges comprises → hors charges
+  var sitEl=$('mric-situation'), prixEl2=$('mric-prix'), loyerEl=$('mric-loyer'), surfEl=$('mric-surface'), typeLogEl=$('mric-typeLogement'), inseeEl=$('mric-insee');
+  var prixD=$('mric-prix-d'), loyerD=$('mric-loyer-d');
+  var prixManuel=false, loyerManuel=false, commune=null, COMMUNES=null, chargement=null;
+  function sit(){return sitEl?sitEl.value:'locataire';}
+  function fmtInput(n){return n>0?String(Math.round(n)):'';}
+  function sansAccents(t){return String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[-']/g,' ').replace(/\s+/g,' ').trim();}
+  function chargerCommunes(){
+    if(COMMUNES||chargement)return chargement;
+    var tool=document.getElementById('mric-tool'), url=(tool.getAttribute('data-communes')||'communes-immo.json'), ver=tool.getAttribute('data-communes-version')||'';
+    if(ver)url+=(url.indexOf('?')>=0?'&':'?')+'v='+ver;
+    chargement=fetch(url).then(function(r){return r.json();}).then(function(j){COMMUNES=(j.communes||[]).filter(function(c){return c.c!=='D75';});COMMUNES.forEach(function(c){c.k=sansAccents(c.n);});window.__aolCommunesMaj=j.maj;window.__aolCourbe=j.courbe||null;return COMMUNES;}).catch(function(){COMMUNES=null;chargement=null;window.__aolCommunesErreur=true;return [];});
+    return chargement;
   }
-  $('mric-btn-calculer').addEventListener('click',calculer);
-  calculer();
+  // autocomplétion
+  var villeEl=$('aol8-ville'), sugg=$('aol8-sugg'), suggIdx=-1, suggItems=[], DEPTS={}, deptEnCours={};
+  function urlDept(dep){var tool=document.getElementById('mric-tool'), base=(tool.getAttribute('data-communes')||'communes-immo.json').replace(/\.json(\?.*)?$/,''), ver=tool.getAttribute('data-communes-version')||'';return base+'/'+dep+'.json'+(ver?'?v='+ver:'');}
+  function chargerDept(dep){
+    if(DEPTS[dep])return Promise.resolve(DEPTS[dep]);
+    if(deptEnCours[dep])return deptEnCours[dep];
+    deptEnCours[dep]=fetch(urlDept(dep)).then(function(r){return r.ok?r.json():{communes:[]};}).then(function(j){var l=(j.communes||[]);l.forEach(function(c){c.k=sansAccents(c.n);});DEPTS[dep]=l;return l;}).catch(function(){DEPTS[dep]=[];return [];});
+    return deptEnCours[dep];
+  }
+  function fermerSugg(){sugg.hidden=true;sugg.innerHTML='';suggIdx=-1;suggItems=[];villeEl.setAttribute('aria-expanded','false');}
+  function montrerSugg(liste,q){
+    sugg.innerHTML='';suggItems=liste;suggIdx=-1;
+    if(!liste.length){var li=document.createElement('li');li.className='none';li.textContent=window.__aolCommunesErreur?'Les données des communes n\'ont pas pu être chargées (la page doit être ouverte depuis un site, pas depuis un fichier).':(q.length<2?'Tapez les premières lettres de votre commune':(/\d/.test(q)?'Commune introuvable dans ce département : essayez la ville la plus proche, ou « Autre commune » suivi du département.':'Petite commune ? Ajoutez son département, par exemple « Mios 33 ».'));sugg.appendChild(li);}
+    liste.forEach(function(c,k){var li=document.createElement('li');li.setAttribute('role','option');li.innerHTML='<span>'+c.n+'</span><small>'+(c.c.charAt(0)==='D'?'moyenne du département':c.d+(c.pa?' · '+formatEuro(c.pa)+'/m²':''))+'</small>';li.addEventListener('mousedown',function(e){e.preventDefault();choisirCommune(c);});sugg.appendChild(li);});
+    sugg.hidden=false;villeEl.setAttribute('aria-expanded','true');
+  }
+  function chercher(q){
+    var k=sansAccents(q).replace(/^st /,'saint ').replace(/ st /g,' saint ').replace(/^ste /,'sainte ').replace(/ ste /g,' sainte ');
+    if(!COMMUNES||k.length<2)return [];
+    var tokens=k.split(' ').filter(Boolean);
+    function matchNom(c){var mots=c.k.split(' ');return tokens.every(function(t){return mots.some(function(w){return w.indexOf(t)===0;});});}
+    var res=COMMUNES.filter(matchNom);
+    var m=k.match(/\b(\d{2,3}|2a|2b)\b/);
+    if(m){   // « mios 33 » : nom + département, dans la liste principale puis dans le fichier du département
+      var dep=m[1], reste=k.replace(m[0],'').trim(), tk=reste.split(' ').filter(Boolean);
+      var inDep=function(c){return c.d===dep&&(!tk.length||tk.every(function(t){return c.k.split(' ').some(function(w){return w.indexOf(t)===0;});}));};
+      var extra=(DEPTS[dep]||[]).filter(inDep), vus={};
+      res=COMMUNES.filter(inDep).concat(extra).filter(function(c){if(vus[c.c])return false;vus[c.c]=true;return true;});
+      if(!DEPTS[dep]){chargerDept(dep).then(function(){if(villeEl.value===q)montrerSugg(chercher(q),q);});}
+    }
+    var first=tokens[0]||'';
+    res.sort(function(a,b){var ap=a.k.indexOf(first)===0?0:1, bp=b.k.indexOf(first)===0?0:1; return ap-bp||b.w-a.w;});
+    return res.slice(0,8);
+  }
+  function choisirCommune(c){commune=c;villeEl.value=c.n;inseeEl.value=c.c;fermerSugg();prixManuel=false;loyerManuel=false;deduire();calculer();var nxt=sit()==='locataire'?surfEl:surfEl;if(nxt&&!num('surface'))nxt.focus();}
+  if(villeEl){
+    villeEl.addEventListener('focus',function(){chargerCommunes().then(function(){if(villeEl.value.length>=2&&!commune)montrerSugg(chercher(villeEl.value),villeEl.value);});});
+    villeEl.addEventListener('input',function(){commune=null;inseeEl.value='';chargerCommunes().then(function(){var q=villeEl.value;if(q.length<2){fermerSugg();deduire();calculer();return;}montrerSugg(chercher(q),q);});});
+    villeEl.addEventListener('keydown',function(e){
+      if(sugg.hidden)return;
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();var n=suggItems.length;if(!n)return;suggIdx=(suggIdx+(e.key==='ArrowDown'?1:-1)+n)%n;Array.prototype.forEach.call(sugg.children,function(li,k){li.setAttribute('aria-selected',k===suggIdx?'true':'false');});}
+      else if(e.key==='Enter'){e.preventDefault();if(suggItems.length)choisirCommune(suggItems[suggIdx>=0?suggIdx:0]);}
+      else if(e.key==='Escape'){fermerSugg();}
+    });
+    villeEl.addEventListener('blur',function(){setTimeout(fermerSugg,150);});
+  }
+  document.querySelectorAll('#aol8-type button').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('#aol8-type button').forEach(function(x){x.classList.toggle('on',x===b);});typeLogEl.value=b.dataset.t;prixManuel=false;loyerManuel=false;deduire();calculer();});});
+  // charges du propriétaire estimées d'après le bien : taxe foncière ≈ 1 mois de loyer de marché, entretien 0,6 % du prix par an,
+  // copropriété non récupérable ≈ 12 €/m²/an (0 pour une maison), assurance habitation 120 € + 1,5 €/m²
+  var chargesManuel={taxe:false,copro:false,entretien:false,assuranceHab:false};
+  ['taxe','copro','entretien','assuranceHab'].forEach(function(k){var el=$('mric-'+k);if(el)el.addEventListener('input',function(){chargesManuel[k]=true;});});
+  function majCharges(S,type,prix,loyerMarche){
+    if(!(S>0&&prix>0))return;
+    var pm2=prix/S, mois=Math.min(2,Math.max(1,2.2-pm2/5000));   // Paris ≈ 1 mois de loyer, villes bon marché ≈ 2 mois (taux locaux plus élevés)
+    var v={taxe:Math.round((loyerMarche||prix*0.004)*mois/10)*10, entretien:Math.round(Math.max(prix*0.006,S*8)/10)*10, copro:type==='maison'?0:Math.round(S*12/10)*10, assuranceHab:Math.round((120+1.5*S)/10)*10};
+    Object.keys(v).forEach(function(k){if(!chargesManuel[k]){var el=$('mric-'+k);if(el)el.value=String(v[k]);}});
+  }
+  // prix au m² selon la surface : un studio se paie plus cher au m² qu'un grand appartement (ratios DVF par tranche)
+  var MIDS=[20,40,65,95];
+  function facteurSurface(c,S){
+    var f=(c&&c.f)||window.__aolCourbe; if(!f||!(S>0))return 1;
+    if(S<=MIDS[0])return f[0]; if(S>=MIDS[3])return f[3];
+    for(var i=0;i<3;i++){ if(S<=MIDS[i+1]) return f[i]+(f[i+1]-f[i])*(S-MIDS[i])/(MIDS[i+1]-MIDS[i]); }
+    return 1;
+  }
+  function loyerM2(c,S,type){
+    if(type==='maison')return c.lm||c.l3||c.l12;
+    if(!c.l12||!c.l3)return c.l12||c.l3;
+    if(S<=37)return c.l12; if(S>=72)return c.l3;
+    return c.l12+(c.l3-c.l12)*(S-37)/35;   // entre les deux biens de référence de l'ANIL
+  }
+  // déduction : prix = surface × prix au m² (DVF) ; loyer équivalent = surface × loyer au m² (ANIL), hors charges
+  function deduire(){
+    var S=num('surface'), type=typeLogEl?typeLogEl.value:'appartement', c=commune;
+    var pm2 = c ? (type==='maison' ? (c.pm||c.pa) : Math.round((c.pa||c.pm)*facteurSurface(c,S))) : 0;
+    var lm2 = c ? loyerM2(c,S,type) : 0;
+    var loyerMarche = (c&&S>0&&lm2) ? Math.round(S*lm2*CHARGES[type]/10)*10 : 0;
+    if(!prixManuel&&prixEl2) prixEl2.value=fmtInput(c&&S>0&&pm2?Math.round(S*pm2/1000)*1000:0);
+    if(sit()!=='locataire'&&!loyerManuel&&loyerEl) loyerEl.value=fmtInput(loyerMarche);
+    if(prixD) prixD.value=prixEl2.value; if(loyerD) loyerD.value=loyerEl.value;
+    majApport(); majNotaire(); majCharges(S,type,num('prix'),loyerMarche);
+    var dv=$('aol7-derived'), dt=$('aol7-derived-t');
+    if(dv&&dt){
+      var p=num('prix'), l=num('loyer');
+      var ok=c&&S>0&&p>0&&(sit()!=='locataire'||l>0);
+      dv.hidden=!ok;
+      if(ok){
+        var bien=(type==='maison'?'Une maison':'Un appartement')+' de '+Math.round(S)+' m² à '+c.n;
+        var src=' <span class="aol8-src"><b>Sur quoi c\'est basé :</b> '+(c.src==='estim'?'prix estimé par des portails immobiliers (commune hors base DVF)':'la médiane des ventes réelles des 12 derniers mois à '+c.n+' (base DVF des notaires)')+(type!=='maison'?', ajustée à la surface ('+formatEuro(pm2)+' le m²)':' ('+formatEuro(pm2)+' le m²)')+(sit()==='locataire'?'. Le loyer de référence est celui des annonces pour cette surface (ANIL 2025), hors charges.':'. Le loyer équivalent est le loyer moyen des annonces pour cette surface (ANIL 2025), ramené hors charges.')+' <b>Ce que ça ignore :</b> le quartier, l\'étage, l\'état du bien, le nombre de pièces, un extérieur, le DPE. Un bien précis peut valoir 20 % de plus ou de moins : si vous connaissez son prix, saisissez-le.</span>';
+        if(sit()==='locataire'){
+          var cmp = loyerMarche ? (l>loyerMarche*1.15 ? " Votre loyer est au-dessus du marché local ("+formatEuro(loyerMarche)+" en moyenne pour cette surface), ce qui favorise l'achat." : (l<loyerMarche*0.85 ? " Votre loyer est en dessous du marché local ("+formatEuro(loyerMarche)+" en moyenne), ce qui favorise la location." : " Votre loyer est dans la moyenne locale ("+formatEuro(loyerMarche)+").")) : "";
+          dt.innerHTML=bien+" se vend autour de <b>"+formatEuro(p)+"</b> ("+formatEuro(pm2)+" le m²)"+(prixManuel?", valeur que vous avez saisie.":".")+cmp+src;
+        } else {
+          dt.innerHTML=bien+" se vend autour de <b>"+formatEuro(p)+"</b> ("+formatEuro(pm2)+" le m²) et se loue autour de <b>"+formatEuro(l)+" par mois</b> hors charges"+((prixManuel||loyerManuel)?" (valeurs que vous avez ajustées).":".")+src;
+        }
+      }
+    }
+  }
+  function appliquerSituation(){
+    var v=sit(), c=SIT[v];
+    $('aol7-q-loyer').hidden=(v!=='locataire');
+    $('aol8-ville-lbl').textContent=c.ville; $('aol8-surface-lbl').textContent=c.surf;
+    if(v==='locataire'){ $('aol7-loyer-lbl').textContent=c.loyer; $('aol7-loyer-hint').textContent=c.hint; }
+    $('aol6-empty-t').textContent=c.empty;
+    $('aol7-r-loyer-l').textContent = v==='locataire' ? "Votre loyer" : "Loyer du bien équivalent";
+    $('aol7-r-loyer-h').textContent = v==='locataire' ? "hors charges, modifiable" : "surface × loyer au m² de la commune (ANIL), hors charges, modifiable";
+    prixManuel=false; loyerManuel=false;
+    if(loyerEl) loyerEl.value='';
+    deduire(); calculer();
+  }
+  document.querySelectorAll('#aol7-situation button').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('#aol7-situation button').forEach(function(x){x.classList.toggle('on',x===b);});sitEl.value=b.dataset.v;appliquerSituation();});});
+  if(loyerEl) loyerEl.addEventListener('input',function(){if(sit()!=='locataire')loyerManuel=true;deduire();});
+  if(surfEl) surfEl.addEventListener('input',function(){prixManuel=false;loyerManuel=false;deduire();});
+  if(prixD) prixD.addEventListener('input',function(){prixManuel=true;prixEl2.value=prixD.value;majApport();majNotaire();deduire();calculer();});
+  if(loyerD) loyerD.addEventListener('input',function(){loyerManuel=true;loyerEl.value=loyerD.value;deduire();calculer();});
+  var dEdit=$('aol7-derived-edit');
+  if(dEdit) dEdit.addEventListener('click',function(){var dr=$('aol6-drawer'),ad=$('aol6-adjust');if(dr.hidden){dr.hidden=false;ad.setAttribute('aria-expanded','true');}var f=prixD;if(f){f.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(function(){f.focus();f.select();},350);}});
+  // ----- tiroir « Ajuster les hypothèses » -----
+  var adj=$('aol6-adjust'), drawer=$('aol6-drawer');
+  if(adj&&drawer){adj.addEventListener('click',function(){var open=drawer.hidden;drawer.hidden=!open;adj.setAttribute('aria-expanded',open?'true':'false');if(open){var f=drawer.querySelector('input,button');}});}
+  // ----- crédit / cash -----
+  var cashCb=$('mric-cash');
+  function syncCash(){cont.classList.toggle('mric-cash',cashCb.checked);document.querySelectorAll('#aol-seg-cash button').forEach(function(b){b.classList.toggle('on',(b.dataset.cash==='1')===cashCb.checked);});}
+  document.querySelectorAll('#aol-seg-cash button').forEach(function(b){b.addEventListener('click',function(){cashCb.checked=b.dataset.cash==='1';syncCash();calculer();});});
+  syncCash();
+  // ----- apport : 10 % du prix tant qu'il n'est pas saisi à la main -----
+  var apportManuel=false, apportEl=$('mric-apport');
+  function majApport(){ if(apportManuel||!apportEl)return; apportEl.value=num('prix')>0?String(Math.round(num('prix')*0.10/1000)*1000):''; }
+  if(apportEl) apportEl.addEventListener('input',function(){apportManuel=true;});
+  majApport();
+  // ----- scénarios : hausse du bien + rendement net -----
+  function majPreset(){var a=num('appreciation'),r=num('rendement');document.querySelectorAll('#aol-seg-preset button').forEach(function(b){b.classList.toggle('on',+b.dataset.appr===a&&+b.dataset.rdt===r);});}
+  document.querySelectorAll('#aol-seg-preset button').forEach(function(b){b.addEventListener('click',function(){$('mric-appreciation').value=b.dataset.appr;$('mric-rendement').value=b.dataset.rdt;majPreset();calculer();});});
+  ['mric-appreciation','mric-rendement'].forEach(function(id){var el=$(id);if(el)el.addEventListener('input',majPreset);});
+  // ----- curseur « Et si je reste… » -----
+  var slider=$('mric-horizon');
+  if(slider){slider.addEventListener('input',function(){calculer();});}
+  // ----- notaire déduit du prix et du type de bien, tant qu'il n'est pas saisi à la main -----
+  var notaireManuel=false, prixEl=$('mric-prix'), typeEl=$('mric-type'), notaireEl=$('mric-notaire');
+  function majNotaire(){ if(notaireManuel||!notaireEl)return; var t=(typeEl&&typeEl.value==='neuf')?2.5:7.5; notaireEl.value=num('prix')>0?String(Math.round(num('prix')*t/100/100)*100):'0'; }
+  if(notaireEl) notaireEl.addEventListener('input',function(){notaireManuel=true;});
+  if(typeEl) typeEl.addEventListener('change',function(){majNotaire();calculer();});
+  majNotaire();
+  // ----- calcul en direct -----
+  var calcT;
+  document.querySelectorAll('#mric-surface, #mric-loyer, .aol-fields input:not(#mric-prix-d):not(#mric-loyer-d)').forEach(function(el){
+    el.addEventListener('input',function(){clearTimeout(calcT);calcT=setTimeout(calculer,150);});
+    el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();calculer();el.blur();}});
+  });
+  // barre mobile masquée quand la carte verdict est visible
+  var mini=$('aol-mini'), card=$('aol6-res');
+  if(mini&&card&&'IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(e){mini.classList.toggle('off',e.isIntersecting);});},{threshold:0}).observe(card);}
+  deduire(); appliquerSituation();
 })();
 
 /* ===== LEAD MAGNET — Submit handler (Worker) ===== */
