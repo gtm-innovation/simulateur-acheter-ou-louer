@@ -1994,6 +1994,42 @@
   /* le formulaire email reste encadré, sur toute la largeur */
   .v5 .mric-gate-card.mric-gate-inline { margin-left:0; margin-right:0; padding:24px 18px 20px; }
 }
+
+/* ===== v10 : durée de séjour, financement, et maintenant (26/10/2026) ===== */
+.v5.aol4.aol6 .aol10-dur { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:12px; }
+.v5.aol4.aol6 .aol10-dur .q { font-size:13px; color:var(--fg-3); margin-right:4px; }
+.v5.aol4.aol6 .aol10-dur button { border:1px solid var(--line-2); background:none; color:var(--fg-2); font:inherit; font-size:13px; font-weight:650; padding:6px 12px; border-radius:999px; cursor:pointer; }
+.v5.aol4.aol6 .aol10-dur button:hover { border-color:var(--fg-4); }
+.v5.aol4.aol6 .aol10-dur button.on { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+.v5.aol4.aol6 .aol10-fin, .v5.aol4.aol6 .aol10-next { margin-top:28px; padding-top:20px; border-top:1px solid var(--line-2); }
+.v5.aol4.aol6 .aol10-fin[hidden] { display:none; }
+.v5.aol4.aol6 .aol10-fin-row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.v5.aol4.aol6 .aol10-fin-row label { font-size:15px; color:var(--fg-2); display:flex; flex-direction:column; gap:2px; }
+.v5.aol4.aol6 .aol10-fin-row small { font-size:12.5px; color:var(--fg-4); }
+.v5.aol4.aol6 .aol10-fin .aol6-in { display:flex; align-items:baseline; gap:6px; border-bottom:1.5px solid var(--line-2); padding-bottom:4px; }
+.v5.aol4.aol6 .aol10-fin .aol6-in:focus-within { border-bottom-color:var(--accent); }
+.v5.aol4.aol6 .aol10-fin input { width:110px; border:0; background:transparent; color:var(--fg); font:inherit; font-size:20px; font-weight:750; text-align:right; outline:none; }
+.v5.aol4.aol6 .aol10-fin input::placeholder { color:var(--fg-4); font-weight:600; }
+.v5.aol4.aol6 .aol10-fin .aol6-in span { font-size:13px; color:var(--fg-3); white-space:nowrap; }
+.v5.aol4.aol6 .aol10-fin-t { margin:12px 0 0; font-size:14.5px; line-height:1.55; color:var(--fg-2); }
+.v5.aol4.aol6 .aol10-fin-t b.a { color:var(--accent); }
+.v5.aol4.aol6 .aol10-fin-t b.l { color:var(--orange); }
+.v5.aol4.aol6 .aol10-fin-t a, .v5.aol4.aol6 .aol10-next a { color:var(--accent); }
+.v5.aol4.aol6 .aol10-next { display:flex; flex-direction:column; }
+.v5.aol4.louer .aol10-next .placer { order:1; }
+.v5.aol4.louer .aol10-next .achat { order:2; }
+.v5.aol4.aol6 .aol10-next .aol6-k { order:0; }
+.v5.aol4.aol6 .aol10-g { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 24px; }
+.v5.aol4.aol6 .aol10-g a { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 0; border-bottom:1px solid var(--line); text-decoration:none; }
+.v5.aol4.aol6 .aol10-g a span { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.v5.aol4.aol6 .aol10-g a b { font-size:15px; font-weight:700; color:var(--fg); }
+.v5.aol4.aol6 .aol10-g a small { font-size:13px; color:var(--fg-4); }
+.v5.aol4.aol6 .aol10-g a svg { width:16px; height:16px; flex:none; fill:none; stroke:var(--accent); stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+.v5.aol4.aol6 .aol10-g a:hover b { color:var(--accent); }
+@container aol (max-width:739px) {
+  .v5.aol4.aol6 .aol10-g { grid-template-columns:minmax(0,1fr); }
+  .v5.aol4.aol6 .aol10-fin-row { align-items:flex-end; }
+}
 </style>
 
 <div class="mric-calc v5 aol4 aol6" data-share-url="https://moneyradar.org/simulateur-acheter-ou-louer/">
@@ -2055,6 +2091,7 @@
         </div>
         <div class="aol6-scale"><span>1 an</span><span>10 ans</span><span>20 ans</span><span>30 ans</span></div>
         <div class="aol6-you"><span class="tag" id="aol6-you-tag">Vous&nbsp;? glissez le point</span><span id="aol6-you-t"></span></div>
+        <div class="aol10-dur" id="aol10-dur" role="group" aria-label="Combien de temps pensez-vous rester ?"><span class="q">Vous pensez rester</span><button type="button" data-y="3">3 ans</button><button type="button" data-y="5">5 ans</button><button type="button" data-y="8">8 ans</button><button type="button" data-y="10">10 ans</button><button type="button" data-y="15">15 ans</button></div>
         <p class="aol7-note" id="aol7-note" hidden></p>
       </div>
 
@@ -2080,7 +2117,17 @@
         </div>
         <p class="aol9-diff" id="aol9-diff"></p>
         <p class="aol9-how" id="aol9-how"></p>
+        <div class="aol10-fin" id="aol10-fin">
+          <p class="aol6-k">Ce crédit est-il finançable&nbsp;?</p>
+          <div class="aol10-fin-row"><label for="aol10-rev">Revenus nets du foyer <small>par mois, avant impôt · facultatif</small></label><div class="aol6-in"><input type="text" id="aol10-rev" value="" placeholder="3 000" inputmode="decimal" autocomplete="off"><span>€ / mois</span></div></div>
+          <p class="aol10-fin-t" id="aol10-fin-t"></p>
+        </div>
         <p class="aol9-method-link"><a href="#aol-methode">Comment c'est calculé, et d'où viennent les chiffres →</a></p>
+        <div class="aol10-next" id="aol10-next">
+          <p class="aol6-k">Et maintenant&nbsp;?</p>
+          <div class="aol10-g achat"><a href="https://moneyradar.org/guides/taux-endettement/" target="_blank" rel="noopener"><span><b>Calculer votre taux d'endettement</b><small>Ce qu'une banque accepterait de vous prêter</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a><a href="https://moneyradar.org/immobilier/simulation-pret-immobilier/" target="_blank" rel="noopener"><span><b>Simuler votre prêt immobilier</b><small>Mensualité, durée et coût total du crédit</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a></div>
+          <div class="aol10-g placer"><a href="https://moneyradar.org/bourse/pea/meilleur-pea/" target="_blank" rel="noopener"><span><b>Placer la différence : meilleur PEA</b><small>Le placement en actions le plus avantageux fiscalement</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a><a href="https://moneyradar.org/assurance-vie/meilleure-assurance-vie/" target="_blank" rel="noopener"><span><b>Meilleure assurance vie</b><small>Fonds en euros et unités de compte, frais comparés</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a></div>
+        </div>
       </div>
 
       <button class="aol6-adjust" id="aol6-adjust" type="button" aria-expanded="false" aria-controls="aol6-drawer"><span>Ajuster les hypothèses</span><small>crédit, frais, charges, scénarios · des valeurs réalistes sont déjà remplies</small><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
@@ -2094,7 +2141,7 @@
             <div class="aol-sub">Scénario</div>
             <div class="aol-row full aol-row-preset"><span class="lb">Hausse du bien et rendement de l'épargne <small>par an · le rendement est net d'impôts</small></span><div class="aol-seg aol-preset" id="aol-seg-preset" role="group" aria-label="Scénario"><button type="button" data-appr="1" data-rdt="3">Prudent<small>+1 % · 3 %</small></button><button type="button" class="on" data-appr="2" data-rdt="4">Moyen<small>+2 % · 4 %</small></button><button type="button" data-appr="3" data-rdt="5">Dynamique<small>+3 % · 5 %</small></button></div></div>
             <div class="aol-row "><label for="mric-appreciation">Hausse du prix du bien</label><div class="aol-val"><input type="text" id="mric-appreciation" value="2" inputmode="decimal"><span>% / an</span></div></div>
-            <div class="aol-row "><label for="mric-rendement">Rendement net de votre épargne <small>PEA ou assurance vie ≈ brut, compte-titres ≈ brut × 0,7</small></label><div class="aol-val"><input type="text" id="mric-rendement" value="4" inputmode="decimal"><span>% / an</span></div></div>
+            <div class="aol-row "><label for="mric-rendement">Rendement net de votre épargne <small>net d'impôts : PEA de plus de 5 ans ≈ brut × 0,8, compte-titres ≈ brut × 0,7</small></label><div class="aol-val"><input type="text" id="mric-rendement" value="4" inputmode="decimal"><span>% / an</span></div></div>
             <div class="aol-sub">L'achat</div>
             <div class="aol-row full"><span class="lb">Vous achetez <small>cash : tout le capital est immobilisé</small></span><div class="aol-seg" id="aol-seg-cash" role="group" aria-label="Mode d'achat"><button type="button" class="on" data-cash="0">À crédit</button><button type="button" data-cash="1">Cash</button></div><input type="checkbox" id="mric-cash" hidden></div>
             <div class="aol-row aol-credit"><label for="mric-taux">Taux d'intérêt</label><div class="aol-val"><input type="text" id="mric-taux" value="3.4" inputmode="decimal"><span>%</span></div></div>
@@ -2107,13 +2154,13 @@
             <div class="aol-row aol-credit"><label for="mric-fraisCredit">Frais du crédit <small>garantie (caution ou hypothèque) et dossier, en % du prêt</small></label><div class="aol-val"><input type="text" id="mric-fraisCredit" value="1.2" inputmode="decimal"><span>%</span></div></div>
             <div class="aol-row aol-credit"><label for="mric-ira">Pénalité si revente avant la fin du prêt <small>indemnité de remboursement anticipé, plafond légal 3 % du capital restant (0 pour l'ignorer)</small></label><div class="aol-val"><input type="text" id="mric-ira" value="3" inputmode="decimal"><span>%</span></div></div>
             <div class="aol-sub">Charges du propriétaire</div>
-            <div class="aol-row "><label for="mric-taxe">Taxe foncière <small>estimée : 1 à 2 mois de loyer de marché selon la ville</small></label><div class="aol-val"><input type="text" id="mric-taxe" value="1300" inputmode="decimal"><span>€ / an</span></div></div>
+            <div class="aol-row "><label for="mric-taxe">Taxe foncière <small>estimée hors ordures ménagères (le locataire les paie aussi) : 1 à 2 mois de loyer de marché selon la ville</small></label><div class="aol-val"><input type="text" id="mric-taxe" value="1300" inputmode="decimal"><span>€ / an</span></div></div>
             <div class="aol-row "><label for="mric-copro">Charges de copropriété <small>estimées : part non récupérable, 0 pour une maison</small></label><div class="aol-val"><input type="text" id="mric-copro" value="1200" inputmode="decimal"><span>€ / an</span></div></div>
             <div class="aol-row "><label for="mric-entretien">Entretien et travaux <small>estimés : 0,6 % du prix, au moins 8 €/m² par an</small></label><div class="aol-val"><input type="text" id="mric-entretien" value="1800" inputmode="decimal"><span>€ / an</span></div></div>
             <div class="aol-row "><label for="mric-inflation">Hausse des charges <small>taxe, copropriété, entretien, assurance</small></label><div class="aol-val"><input type="text" id="mric-inflation" value="2" inputmode="decimal"><span>% / an</span></div></div>
             <div class="aol-sub">Côté location</div>
             <div class="aol-row "><label for="mric-evolLoyer">Hausse du loyer</label><div class="aol-val"><input type="text" id="mric-evolLoyer" value="2" inputmode="decimal"><span>% / an</span></div></div>
-            <div class="aol-row "><label for="mric-depot">Dépôt de garantie <small>rendu en fin de location</small></label><div class="aol-val"><input type="text" id="mric-depot" value="1100" inputmode="decimal"><span>€</span></div></div>
+            <div class="aol-row "><label for="mric-depot">Dépôt de garantie <small>un mois de loyer hors charges, rendu en fin de location</small></label><div class="aol-val"><input type="text" id="mric-depot" value="1100" inputmode="decimal"><span>€</span></div></div>
             <div class="aol-row "><label for="mric-assuranceHab">Assurance habitation <small>estimée, payée dans les deux cas</small></label><div class="aol-val"><input type="text" id="mric-assuranceHab" value="180" inputmode="decimal"><span>€ / an</span></div></div>
           </div>
         </div>
@@ -2312,7 +2359,7 @@
   <section class="lt aol-methode" id="aol-methode">
     <div class="inn">
       <h2 class="stitle">Comment le simulateur calcule</h2>
-      <p class="btxt">Le simulateur compare, année après année et pour un même logement, <strong>ce qu'il vous reste</strong> si vous l'achetez et ce qu'il vous reste si vous le louez en plaçant l'argent non dépensé. La bascule est la première année où l'achat passe devant. Tout se calcule dans votre navigateur, rien n'est envoyé.</p>
+      <p class="btxt">Le simulateur compare, année après année et pour un même logement, <strong>ce qu'il vous reste</strong> si vous l'achetez et ce qu'il vous reste si vous le louez en plaçant l'argent non dépensé. La bascule est la première année où l'achat passe devant. Tout se calcule dans votre navigateur : rien n'est envoyé, sauf si vous demandez l'analyse détaillée par email.</p>
 
       <h3>1. Le logement comparé</h3>
       <p class="btxt">Le prix du bien équivalent = votre surface × le prix au m² de votre commune, ajusté à la taille du logement (un studio se paie plus cher au m² qu'un grand appartement). Pour un propriétaire ou une personne hébergée, le loyer équivalent = la surface × le loyer au m² de la commune pour cette taille, ramené hors charges (× 0,88 pour un appartement, × 0,94 pour une maison). Un locataire garde son vrai loyer. Les deux valeurs sont modifiables dans « Ajuster ».</p>
@@ -2320,8 +2367,8 @@
       <h3>2. Si vous achetez</h3>
       <ul class="aol-mlist">
         <li><strong>Le jour J</strong> : l'apport (10 % du prix par défaut), les frais de notaire (7,5 % dans l'ancien, 2,5 % dans le neuf), les frais d'agence éventuels et les frais du crédit (garantie et dossier, 1,2 % du prêt).</li>
-        <li><strong>Chaque mois</strong> : la mensualité du prêt (taux 3,4 %, 25 ans, assurance 0,34 % par an sur le capital emprunté), plus la taxe foncière (1 à 2 mois de loyer de marché selon le niveau de prix de la ville), les charges de copropriété non récupérables (12 €/m² par an, 0 pour une maison), l'entretien (0,6 % du prix, au moins 8 €/m²) et l'assurance habitation. Ces charges augmentent de 2 % par an.</li>
-        <li><strong>Ce qu'il vous reste à une date donnée</strong> : la valeur du bien (+2 % par an dans le scénario moyen), moins les frais de revente (5 %), moins le capital restant dû, moins l'indemnité de remboursement anticipé si vous revendez avant la fin du prêt (six mois d'intérêts, plafonnés à 3 % du capital restant), plus l'épargne que vous auriez placée si être propriétaire vous coûtait moins cher que louer.</li>
+        <li><strong>Chaque mois</strong> : la mensualité du prêt (taux 3,4 %, 25 ans, assurance 0,34 % par an sur le capital emprunté), plus la taxe foncière hors ordures ménagères, que le locataire rembourse aussi (environ 1 à 2 mois de loyer de marché selon le niveau de prix de la ville), les charges de copropriété non récupérables (12 €/m² par an, 0 pour une maison), l'entretien (0,6 % du prix, au moins 8 €/m²) et l'assurance habitation. Ces charges augmentent de 2 % par an.</li>
+        <li><strong>Ce qu'il vous reste à une date donnée</strong> : la valeur du bien (+2 % par an dans le scénario moyen, en euros courants), moins les frais de revente (5 %), moins le capital restant dû, moins l'indemnité de remboursement anticipé si vous revendez avant la fin du prêt (six mois d'intérêts, plafonnés à 3 % du capital restant), plus l'épargne que vous auriez placée si être propriétaire vous coûtait moins cher que louer.</li>
       </ul>
 
       <h3>3. Si vous louez et placez</h3>
@@ -2375,8 +2422,8 @@
         <details><summary>Comment choisir la durée sur la frise ?</summary><div class="fans">Vous n'avez pas à la connaître : la réponse principale est le nombre d'années à partir duquel acheter devient plus intéressant. Le point « Vous » sert à tester une durée qui vous ressemble (une mutation possible dans cinq ans, un projet de famille dans dix) et à voir ce que chaque option vous laisserait à cette date. En France, un propriétaire garde son logement en moyenne une dizaine d'années.</div></details>
         <details><summary>Ce simulateur tient-il compte de la revente du bien ?</summary><div class="fans">Oui. « Ce qu'il vous reste » en achetant correspond à la valeur du bien à la date choisie, moins les frais de revente (5 % par défaut), moins ce qu'il reste à rembourser, et moins l'indemnité de remboursement anticipé si vous revendez avant la fin du prêt. Côté location, c'est l'apport et les frais que vous n'avez pas dépensés, plus l'écart mensuel placé, le tout avec les intérêts.</div></details>
         <details><summary>Pourquoi la location peut-elle gagner ?</summary><div class="fans">Sur des durées courtes, les frais d'entrée de l'achat (notaire, garantie du prêt, intérêts) ne sont pas encore amortis. Et si vous placez votre apport, les frais économisés et l'écart mensuel entre le coût de l'achat et votre loyer à un bon rendement net, la location devient un choix financièrement défendable. Le simulateur suppose que vous placez vraiment cette différence chaque mois : si vous la dépensez, le calcul ne tient plus.</div></details>
-        <details><summary>Quelle hausse des prix faut-il retenir ?</summary><div class="fans">Sur très longue période, l'immobilier français a progressé en moyenne autour de 1 à 2 % par an au-dessus de l'inflation, avec de fortes disparités locales. Le scénario moyen retient +2 % par an pour le bien et 4 % net pour l'épargne ; les scénarios prudent (+1 % et 3 %) et dynamique (+3 % et 5 %) montrent l'écart que cela produit. Au-delà de 3 % par an, vous surestimez probablement le gain.</div></details>
-        <details><summary>Et les impôts (plus-value, IFI…) ?</summary><div class="fans">La résidence principale est exonérée de plus-value à la revente et il n'y a plus de taxe d'habitation. Le rendement de l'épargne est à saisir net d'impôts (PEA ou assurance vie après quelques années : proche du brut ; compte-titres : brut × 0,7 environ). Le simulateur ne modélise pas l'IFI ni la fiscalité locative : il compare le coût d'usage d'un même bien, acheté ou loué.</div></details>
+        <details><summary>Quelle hausse des prix faut-il retenir ?</summary><div class="fans">Le simulateur raisonne en euros courants, avec une inflation de 2 % par an. Sur longue période, les prix de l'immobilier français ont progressé un peu plus vite que l'inflation, avec de fortes disparités locales et des années de baisse, comme 2023 et 2024. Le scénario moyen retient +2 % par an pour le bien, soit à peu près le rythme de l'inflation, et 4 % net pour l'épargne ; les scénarios prudent (+1 % et 3 %) et dynamique (+3 % et 5 %) montrent l'écart que cela produit. Retenir plus de 3 % par an sur toute la durée revient à parier sur une hausse nettement plus rapide que l'inflation.</div></details>
+        <details><summary>Et les impôts (plus-value, IFI…) ?</summary><div class="fans">La résidence principale est exonérée de plus-value à la revente et il n'y a plus de taxe d'habitation. Le rendement de l'épargne est à saisir net des impôts sur les gains : environ 80 % du rendement brut sur un PEA de plus de cinq ans (prélèvements sociaux de 18,6 %), 75 à 83 % sur une assurance vie de plus de huit ans selon l'abattement, 69 % sur un compte-titres (flat tax de 31,4 %). Le simulateur ne modélise pas l'IFI ni la fiscalité locative : il compare le coût d'usage d'un même bien, acheté ou loué.</div></details>
       </div>
     </div>
   </section>
@@ -2566,7 +2613,8 @@
     var youT = achatGagne
       ? "À "+ans(hz)+", acheter vous laisse <b class=\"a\">"+formatEuro(Math.abs(ecart))+" de plus</b> que louer."
       : "À "+ans(hz)+", louer vous laisse <b class=\"l\">"+formatEuro(Math.abs(ecart))+" de plus</b> qu'acheter.";
-    $('aol6-you-t').innerHTML=youT; $('aol6-you-tag').innerHTML=(sit()==='proprietaire'?"Au total&nbsp;: ":"Vous&nbsp;: ")+ans(hz);
+    $('aol6-you-t').innerHTML=youT; $('aol6-you-tag').innerHTML=(sit()==='proprietaire'?"Au total&nbsp;: ":"Vous&nbsp;: ")+ans(hz)+(dureeChoisie?"":" · par défaut");
+    document.querySelectorAll('#aol10-dur button').forEach(function(x){x.classList.toggle('on',dureeChoisie&&+x.dataset.y===hz);});
     var note=$('aol7-note');
     if(note){ if(sit()==='proprietaire'){ note.hidden=false; note.textContent="Le calcul compare acheter ou louer aujourd'hui un logement équivalent au vôtre. Il ne dit pas s'il faut vendre pour redevenir locataire : frais de vente déjà engagés, crédit en cours et plus-value changeraient la question."; } else note.hidden=true; }
     // le compte, à la durée choisie
@@ -2597,6 +2645,7 @@
     else if(b&&b<=1) how="Ici l'achat l'emporte tout de suite : le loyer est élevé par rapport au prix, les frais d'achat sont vite rattrapés.";
     else how="Ici, même sur "+ans(YEARS)+", ce que rapporte l'épargne placée dépasse ce que le logement rapporte en valeur et en crédit remboursé : les frais d'entrée ne sont jamais rattrapés.";
     $('aol9-how').textContent=how;
+    dernierCalcul=d; majFinancement();
     // barre mobile
     txt('aol-m-v', !b ? "Louer gagne sur "+ans(YEARS) : (b<=1 ? "Acheter gagne dès l'achat" : "Achetez à partir de "+ans(b)));
     txt('aol-m-e',"À "+ans(hz)+" : "+(achatGagne?"acheter":"louer")+" +"+formatCompact(Math.abs(ecart)));
@@ -2623,7 +2672,7 @@
     window.__mricAcheterData={
       inputs:{situation:sit(),commune:commune?commune.n:'',insee:commune?commune.c:'',surface:num('surface'),typeLogement:(typeLogEl||{}).value||'appartement',prixM2Commune:commune?(((typeLogEl||{}).value==='maison')?(commune.pm||commune.pa):(commune.pa||commune.pm)):0,prixDeduit:!prixManuel,loyerDeduit:(sit()!=='locataire'&&!loyerManuel),prix:num('prix'),typeBien:($('mric-type')||{}).value||'ancien',apport:num('apport'),notaire:num('notaire'),agence:num('agence'),revente:num('revente'),taux:num('taux'),duree:d.duree,assurance:num('assurance'),taxe:num('taxe'),copro:num('copro'),entretien:num('entretien'),appreciation:d.appr,loyer:num('loyer'),evolLoyer:num('evolLoyer'),depot:num('depot'),assuranceHab:num('assuranceHab'),inflation:num('inflation'),rendementEpargne:d.rdt,achatCash:d.cash,horizon:hz,scenario:presetEl?presetEl.textContent.split(/\s/)[0].toLowerCase():'personnalise'},
       results:{fraisCredit:num('fraisCredit'),ira:num('ira'),mensualite:d.mens,coutMensuelProprio:d.ownerOutM1,coutMensuelLocataire:d.renterOutM1,interetsTotaux:d.interets,coutEntree:d.entryCash,gainAnnuelProprio:equityGain,horizon:hz,horizonSimule:d.H,patrimoineAchat:d.buyerNW,patrimoineLocation:d.renterNW,valeurFinale:d.valeurH,pointBascule:b,verdict:achatGagne?'achat':'location',ecart:Math.abs(ecart)},
-      meta:{calculator:'acheter-ou-louer',version:'v8',timestamp:new Date().toISOString()}
+      meta:{calculator:'acheter-ou-louer',version:'v10',timestamp:new Date().toISOString()}
     };
     clearTimeout(window.__aolChartT); window.__aolChartT=setTimeout(function(){drawChart(d.rows,b,hz);},120);
   }
@@ -2719,7 +2768,7 @@
   function majCharges(S,type,prix,loyerMarche){
     if(!(S>0&&prix>0))return;
     var pm2=prix/S, mois=Math.min(2,Math.max(1,2.2-pm2/5000));   // Paris ≈ 1 mois de loyer, villes bon marché ≈ 2 mois (taux locaux plus élevés)
-    var v={taxe:Math.round((loyerMarche||prix*0.004)*mois/10)*10, entretien:Math.round(Math.max(prix*0.006,S*8)/10)*10, copro:type==='maison'?0:Math.round(S*12/10)*10, assuranceHab:Math.round((120+1.5*S)/10)*10};
+    var v={taxe:Math.round((loyerMarche||prix*0.004)*mois*0.9/10)*10, entretien:Math.round(Math.max(prix*0.006,S*8)/10)*10, copro:type==='maison'?0:Math.round(S*12/10)*10, assuranceHab:Math.round((120+1.5*S)/10)*10};
     Object.keys(v).forEach(function(k){if(!chargesManuel[k]){var el=$('mric-'+k);if(el)el.value=String(v[k]);}});
   }
   // prix au m² selon la surface : un studio se paie plus cher au m² qu'un grand appartement (ratios DVF par tranche)
@@ -2745,7 +2794,7 @@
     if(!prixManuel&&prixEl2) prixEl2.value=fmtInput(c&&S>0&&pm2?Math.round(S*pm2/1000)*1000:0);
     if(sit()!=='locataire'&&!loyerManuel&&loyerEl) loyerEl.value=fmtInput(loyerMarche);
     if(prixD) prixD.value=prixEl2.value; if(loyerD) loyerD.value=loyerEl.value;
-    majApport(); majNotaire(); majCharges(S,type,num('prix'),loyerMarche);
+    majApport(); majNotaire(); majCharges(S,type,num('prix'),loyerMarche); majDepot();
     var dv=$('aol7-derived'), dt=$('aol7-derived-t');
     if(dv&&dt){
       var p=num('prix'), l=num('loyer');
@@ -2795,13 +2844,33 @@
   function majApport(){ if(apportManuel||!apportEl)return; apportEl.value=num('prix')>0?String(Math.round(num('prix')*0.10/1000)*1000):''; }
   if(apportEl) apportEl.addEventListener('input',function(){apportManuel=true;});
   majApport();
+  // ----- dépôt de garantie : un mois de loyer hors charges tant qu'il n'est pas saisi à la main (v10) -----
+  var depotManuel=false, depotEl=$('mric-depot');
+  function majDepot(){ if(depotManuel||!depotEl)return; var l=num('loyer'); if(l>0)depotEl.value=String(Math.round(l)); }
+  if(depotEl) depotEl.addEventListener('input',function(){depotManuel=true;});
   // ----- scénarios : hausse du bien + rendement net -----
   function majPreset(){var a=num('appreciation'),r=num('rendement');document.querySelectorAll('#aol-seg-preset button').forEach(function(b){b.classList.toggle('on',+b.dataset.appr===a&&+b.dataset.rdt===r);});}
   document.querySelectorAll('#aol-seg-preset button').forEach(function(b){b.addEventListener('click',function(){$('mric-appreciation').value=b.dataset.appr;$('mric-rendement').value=b.dataset.rdt;majPreset();calculer();});});
   ['mric-appreciation','mric-rendement'].forEach(function(id){var el=$(id);if(el)el.addEventListener('input',majPreset);});
   // ----- curseur « Et si je reste… » -----
+  // ----- « Ce crédit est-il finançable ? » (v10) : mensualité, assurance comprise, rapportée aux revenus -----
+  var dernierCalcul=null, revEl=$('aol10-rev');
+  function majFinancement(){
+    var box=$('aol10-fin'), t=$('aol10-fin-t'), d=dernierCalcul; if(!box||!t)return;
+    if(!d||d.cash||!(d.mens>0)){box.hidden=true;return;} box.hidden=false;
+    var m=d.mens+d.assurM, rev=num2(revEl), lien=' <a href="https://moneyradar.org/guides/taux-endettement/" target="_blank" rel="noopener">Calculer votre taux d\'endettement →</a>';
+    if(!(rev>0)){ t.innerHTML='La mensualité serait de <b>'+formatEuro(m)+' par mois</b>, assurance comprise, sur '+ans(d.duree)+'. Indiquez vos revenus pour savoir si une banque pourrait la financer.'; return; }
+    var r=m/rev, p=Math.round(r*1000)/10, ps=String(p).replace('.',',')+' %';
+    t.innerHTML = r<=0.35
+      ? '<b class="a">'+ps+' de vos revenus</b> : sous le plafond de 35 % que les banques appliquent, à condition de ne pas avoir d\'autres crédits en cours (ils comptent aussi).'+lien
+      : '<b class="l">'+ps+' de vos revenus</b> : au-dessus du plafond de 35 % que les banques appliquent. Il faudrait '+(d.duree>=25?'plus d\'apport ou un bien moins cher (25 ans est déjà la durée maximale dans l\'ancien)':'plus d\'apport, un bien moins cher ou une durée plus longue (25 ans au plus dans l\'ancien)')+'.'+lien;
+  }
+  function num2(el){ if(!el)return 0; var v=parseFloat(String(el.value).replace(/[\s\u00a0\u202f]/g,'').replace(',','.')); return isNaN(v)?0:Math.max(0,v); }
+  if(revEl) revEl.addEventListener('input',majFinancement);
   var slider=$('mric-horizon');
-  if(slider){slider.addEventListener('input',function(){calculer();});}
+  var dureeChoisie=false;
+  if(slider){slider.addEventListener('input',function(){dureeChoisie=true;calculer();});}
+  document.querySelectorAll('#aol10-dur button').forEach(function(bt){bt.addEventListener('click',function(){if(!slider)return;slider.value=bt.dataset.y;dureeChoisie=true;calculer();});});
   // ----- notaire déduit du prix et du type de bien, tant qu'il n'est pas saisi à la main -----
   var notaireManuel=false, prixEl=$('mric-prix'), typeEl=$('mric-type'), notaireEl=$('mric-notaire');
   function majNotaire(){ if(notaireManuel||!notaireEl)return; var t=(typeEl&&typeEl.value==='neuf')?2.5:7.5; notaireEl.value=num('prix')>0?String(Math.round(num('prix')*t/100/100)*100):'0'; }
