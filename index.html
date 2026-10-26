@@ -1953,6 +1953,47 @@
 .v5.aol4.aol6 .aol9-method-link a:hover { text-decoration:underline; text-underline-offset:3px; }
 .v5.aol4.aol6 .aol9-how { margin:8px 0 0; font-size:13.5px; line-height:1.55; color:var(--fg-3); }
 @container aol (max-width:899px) { .v5.aol4.aol6 .aol9-ledger { grid-template-columns:1fr; gap:10px; } }
+
+/* ===== v9 : mobile en pleine largeur, sans cartes imbriquées (26/10/2026) ===== */
+@container aol (max-width:739px) {
+  /* marges latérales : 16 px du bord, une seule fois */
+  .mric-calc.v5.aol4.aol6 .mric-hero, .mric-calc.v5.aol4.aol6 .aol6-answer, .mric-calc.v5.aol4.aol6 .aol-detail { padding-left:0; padding-right:0; }
+  .mric-calc.v5.aol4.aol6 > section > .inn { padding-left:16px; padding-right:16px; }
+
+  /* questions du haut : des lignes, plus des cartes */
+  .v5.aol4.aol6 .aol7-ask, .v5.aol4.aol6 .aol8-row { gap:0; }
+  .v5.aol4.aol6 .aol7-step, .v5.aol4.aol6 .aol7-q { background:none; backdrop-filter:none; -webkit-backdrop-filter:none; border:0; border-bottom:1px solid var(--line-2); border-radius:0; box-shadow:none; padding:18px 0; }
+  .v5.aol4.aol6 .aol7-step { border-top:1px solid var(--line-2); }
+  .v5.aol4.aol6 .aol7-q:focus-within { border-color:var(--line-2); box-shadow:none; }
+  .v5.aol4.aol6 .aol7-seg { width:100%; }
+  .v5.aol4.aol6 .aol7-seg button { flex:1; }
+  /* le champ garde un repère : un trait sous la saisie, vert quand on écrit */
+  .v5.aol4.aol6 .aol8-combo input, .v5.aol4.aol6 .aol7-q .aol6-in { border-bottom:1.5px solid var(--line-2); padding-bottom:6px; }
+  .v5.aol4.aol6 .aol8-combo input:focus, .v5.aol4.aol6 .aol7-q .aol6-in:focus-within { border-bottom-color:var(--accent); }
+  .v5.aol4.aol6 .aol8-sugg { left:0; right:0; }
+  /* prix et loyer estimés : un filet vert à gauche au lieu d'un encadré */
+  .v5.aol4.aol6 .aol7-derived { margin-top:18px; padding:2px 0 2px 14px; background:none; border:0; border-left:3px solid var(--accent); border-radius:0; }
+
+  /* résultat : plus de carte autour */
+  .v5.aol4.aol6 .aol6-answer { padding-top:20px; }
+  .v5.aol4.aol6 .aol6-res { padding:0; background:none; border:0; border-radius:0; }
+  /* « Si vous achetez / Si vous louez » : un trait de couleur en tête, pas de cadre */
+  .v5.aol4.aol6 .aol9-ledger { gap:24px; }
+  .v5.aol4.aol6 .aol9-col { padding:14px 0 4px; background:none; border:0; border-top:3px solid var(--line-2); border-radius:0; }
+  .v5.aol4.aol6 .aol9-col.acheter { border-top-color:var(--accent); }
+  .v5.aol4.aol6 .aol9-col.louer { border-top-color:var(--orange); }
+
+  /* tiroir des hypothèses : à plat, les libellés retrouvent leur largeur */
+  .v5.aol4.aol6 .aol6-drawer.aol-form { background:none; border:0; border-radius:0; overflow:visible; }
+  .v5.aol4.aol6 .aol6-drawer .aol-panel { padding:4px 0 8px; }
+
+  /* détail : récap mensuel et graphique sans cadre */
+  .v5.aol4 .aol-detail .mric-month { padding:20px 0; border:0; border-top:1px solid var(--border-soft); border-radius:0; }
+  .v5.aol4 .aol-detail canvas { border-radius:0; }
+
+  /* le formulaire email reste encadré, sur toute la largeur */
+  .v5 .mric-gate-card.mric-gate-inline { margin-left:0; margin-right:0; padding:24px 18px 20px; }
+}
 </style>
 
 <div class="mric-calc v5 aol4 aol6" data-share-url="https://moneyradar.org/simulateur-acheter-ou-louer/">
