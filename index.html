@@ -1,4 +1,8 @@
 <!-- Calculateur Acheter ou Louer V8 (design v5 + mise en page aol6) — MoneyRadar — 23/10/2026
+     V11 : verrou sur le detail personnalise (ecart en euros, « le compte », graphique,
+     mensualites, tableau) des l'affichage de la reponse. La reponse (bascule,
+     fourchette, frise) reste gratuite. Carte email remontee sous la reponse.
+     Mode : attribut data-gate de la racine = 'off' | 'soft' (defaut) | 'hard'.
      V8 : le bien équivalent vient des données publiques par commune (communes-immo.json, 3 400 communes + repli par
      département) : prix au m² = ventes réelles des 12 derniers mois (DVF, data.gouv « Statistiques DVF »), loyer au m² =
      carte des loyers ANIL 2025 (T1-T2 37 m², T3+ 72 m², maison 92 m², charges comprises → × 0,88 appartement, × 0,94 maison).
@@ -1210,6 +1214,185 @@
   .v5 .scard, .v5 .card { padding-left: 0 !important; padding-right: 0 !important; }
 }
 
+/* ===== AOL v11 : verrou sur le detail personnalise ===== */
+.v5.aol11 .aol11-flou { filter: blur(7px) saturate(.85); pointer-events: none; user-select: none; -webkit-user-select: none; transition: filter .45s ease; }
+.v5.aol11 .aol9-ledger.aol11-flou { max-height: 230px; overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 97%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 97%); }
+.v5.aol11 .aol11-masque { visibility: hidden; }
+.v5.aol11 .aol11-retire { display: none !important; }
+.v5.aol11 .aol11-note { margin: -6px 0 14px; font-size: 13.5px; line-height: 1.5; color: var(--fg-3); }
+.v5.aol11 .aol11-note a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
+/* --- piste A (canvas du 16/11) : la carte email est un panneau compact pose SUR le compte
+       floute. Pas d'arrondi, pas de liseré, pas d'eyebrow, pas de paragraphe : un cadenas,
+       une ligne de titre, une ligne de texte, le champ et le bouton. --- */
+.v5.aol11 .aol6-why { position: relative; }
+.v5.aol11 #aol11-gate-host { position: absolute; left: 0; right: 0; top: 44px; z-index: 3;
+  display: flex; justify-content: center; pointer-events: none; }
+.v5.aol11 #aol11-gate-host:empty { display: none; }
+.v5.aol11 #aol11-gate-host .mric-cta-lm { margin: 0; padding: 0; border: 0; width: 440px; max-width: 100%; pointer-events: auto; }
+.v5.aol11 #aol11-gate-host .mric-gate-card {
+  max-width: none; width: auto; background: var(--bg); border: 1px solid rgba(255,255,255,.14);
+  border-radius: 0; padding: 24px 26px 20px; box-shadow: 0 30px 80px rgba(0,0,0,.6);
+  backdrop-filter: none; -webkit-backdrop-filter: none; text-align: left; animation: none; }
+.v5.aol11[data-theme="light"] #aol11-gate-host .mric-gate-card { border-color: var(--line-2); box-shadow: 0 24px 60px rgba(0,0,0,.18); }
+.v5.aol11 .mric-gate-card::before { display: none; }
+.v5.aol11 .mric-gate-eyebrow { display: none; }
+.v5.aol11 .mric-gate-card h3 { display: flex; align-items: center; gap: 10px; font-size: 17px; line-height: 1.25;
+  letter-spacing: -0.01em; color: var(--fg); margin: 0 0 8px; text-wrap: balance; }
+.v5.aol11 .mric-gate-card h3 em { color: var(--fg); }
+.v5.aol11 .mric-gate-card h3 .aol11-cadenas { flex: none; width: 18px; height: 18px; color: var(--accent); }
+.v5.aol11 .mric-gate-card > p { color: var(--fg-3); font-size: 13.5px; line-height: 1.45; margin: 0 0 14px; }
+.v5.aol11 .mric-gate-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 10px; align-items: center; text-align: left; }
+.v5.aol11 .mric-gate-form input[type="email"] { grid-area: 1 / 1 / 2 / 2; height: 46px; padding: 0 4px;
+  border: 0; border-bottom: 1.5px solid rgba(255,255,255,.22); border-radius: 0; background: transparent; font-size: 15px; }
+.v5.aol11[data-theme="light"] .mric-gate-form input[type="email"] { border-bottom-color: var(--line-2); }
+.v5.aol11 .mric-gate-form input[type="email"]:focus { border-bottom-color: var(--accent); background: transparent; box-shadow: none; }
+.v5.aol11 .mric-gate-form input[aria-invalid="true"] { border-bottom-color: var(--red); background: transparent; }
+.v5.aol11 .mric-gate-submit { grid-area: 1 / 2 / 2 / 3; height: 46px; margin: 0; padding: 0 20px; border-radius: 6px; font-size: 14.5px; }
+.v5.aol11 .mric-gate-consent { grid-area: 2 / 1 / 3 / 3; margin: 0; font-size: 11.5px; }
+.v5.aol11 .mric-gate-privacy { display: none; }
+.v5.aol11 .mric-gate-status { grid-area: 3 / 1 / 4 / 3; margin: 0; text-align: left; }
+.v5.aol11 .mric-gate-fine { display: none; }
+/* la meme carte, en bas de page quand rien n'est verrouille : a plat sous un filet */
+.v5.aol11 #aol11-gate-bottom { margin-top: 30px; }
+.v5.aol11 #aol11-gate-after { margin: 18px 0 4px; }
+.v5.aol11 #aol11-gate-after:empty { display: none; }
+.v5.aol11 #aol11-gate-after .mric-cta-lm { margin: 0; padding: 0; border: 0; }
+.v5.aol11 #aol11-gate-bottom:empty { display: none; }
+.v5.aol11 #aol11-gate-bottom .mric-cta-lm { margin: 0; padding: 22px 0 0; border: 0; border-top: 1px solid var(--line-2); }
+.v5.aol11 #aol11-gate-bottom .mric-gate-card { max-width: 560px; width: auto; background: none; border: 0; border-radius: 0;
+  padding: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; text-align: left; animation: none; }
+/* confirmation : une ligne, pas un encadre */
+.v5.aol11 .mric-gate-success { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; color: var(--fg-2); gap: 10px; }
+.v5.aol11 .mric-gate-success-icon { background: none; border: 0; color: var(--accent); width: auto; height: auto; font-size: 17px; }
+/* le compte floute laisse assez de place au panneau */
+.v5.aol11 .aol9-ledger.aol11-flou { max-height: 340px; }
+
+.v5.aol4.aol6.aol11 .aol-detail .aol10-next { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line-2); }
+/* --- plus de grande carte : la reponse pose directement sur la page.
+       La v10 faisait deja ca sur mobile ; on l'applique a toutes les largeurs. --- */
+.v5.aol4.aol6.aol11 .aol6-res { padding: 0; background: none; border: 0; border-radius: 0; }
+/* le compte : deux colonnes ouvertes, un trait de couleur en tete au lieu d'un cadre */
+.v5.aol4.aol6.aol11 .aol9-ledger { gap: 36px; }
+.v5.aol4.aol6.aol11 .aol9-col { padding: 14px 0 4px; background: none; border: 0;
+  border-top: 3px solid var(--line-2); border-radius: 0; }
+.v5.aol4.aol6.aol11 .aol9-col.acheter { border-top-color: var(--accent); }
+.v5.aol4.aol6.aol11 .aol9-col.louer { border-top-color: var(--orange); }
+/* « Vous : 8 ans » et le repere de la frise : des libelles, pas des pastilles */
+.v5.aol4.aol6.aol11 .aol6-you .tag { background: none; border: 0; border-radius: 0; padding: 0; color: var(--fg-3); }
+.v5.aol4.aol6.aol11 .aol6-flag b { background: none; border: 0; border-radius: 0; padding: 0 2px; }
+/* durees : des choix en texte, le choix actif souligne en couleur */
+.v5.aol4.aol6.aol11 .aol10-dur { gap: 4px 16px; }
+.v5.aol4.aol6.aol11 .aol10-dur button { border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  background: none; color: var(--fg-3); padding: 4px 1px; }
+.v5.aol4.aol6.aol11 .aol10-dur button:hover { color: var(--fg); border-bottom-color: var(--line-2); }
+.v5.aol4.aol6.aol11 .aol10-dur button.on { background: none; color: var(--accent); border-bottom-color: var(--accent); }
+/* email : champ souligne, comme le champ « revenus » de la page ; le bouton reste le seul plein */
+.v5.aol11 #aol11-gate-host .mric-gate-form input[type="email"] {
+  border: 0; border-bottom: 1.5px solid var(--line-2); border-radius: 0;
+  background: transparent; padding: 0 2px; font-size: 17px; }
+.v5.aol11 #aol11-gate-host .mric-gate-form input[type="email"]:focus {
+  border-bottom-color: var(--accent); background: transparent; box-shadow: none; }
+.v5.aol11 #aol11-gate-host .mric-gate-form input[aria-invalid="true"] {
+  border-bottom-color: var(--red); background: transparent; }
+.v5.aol11 #aol11-gate-host .mric-gate-submit { border-radius: 6px; }
+/* « Ajuster les hypotheses » : une ligne sous un filet, pas un bouton encadre */
+.v5.aol4.aol6.aol11 .aol6-adjust { border: 0; border-top: 1px solid var(--line-2); border-radius: 0;
+  padding: 16px 0 4px; margin-top: 26px; }
+.v5.aol4.aol6.aol11 .aol6-adjust:hover { border-color: var(--line-2); }
+.v5.aol4.aol6.aol11 .aol6-adjust:hover span { color: var(--accent); }
+/* barre collante du bas : un bandeau droit sur toute la largeur, plus une pastille flottante */
+.v5.aol4.aol11 .aol-mini { border-radius: 0; border: 0; border-top: 1px solid var(--line-2);
+  background: var(--bg); box-shadow: none; margin-left: 0; margin-right: 0; }
+.v5.aol4.aol11 .aol-mini a { background: none; color: var(--accent); padding: 0 2px; border-radius: 0;
+  text-decoration: underline; text-underline-offset: 3px; }
+/* --- questions du haut : des lignes, plus des cartes (repris de la couche mobile v9,
+       applique a toutes les largeurs ; la disposition en colonnes ne change pas) --- */
+.v5.aol4.aol6.aol11 .aol7-step, .v5.aol4.aol6.aol11 .aol7-q {
+  background: none; backdrop-filter: none; -webkit-backdrop-filter: none; border: 0;
+  border-bottom: 1px solid var(--line-2); border-radius: 0; box-shadow: none; padding: 16px 0; }
+.v5.aol4.aol6.aol11 .aol7-step { border-top: 1px solid var(--line-2); }
+.v5.aol4.aol6.aol11 .aol7-q:focus-within { border-color: var(--line-2); box-shadow: none; }
+.v5.aol4.aol6.aol11 .aol8-combo input, .v5.aol4.aol6.aol11 .aol7-q .aol6-in {
+  border-bottom: 1.5px solid var(--line-2); padding-bottom: 6px; }
+.v5.aol4.aol6.aol11 .aol8-combo input:focus, .v5.aol4.aol6.aol11 .aol7-q .aol6-in:focus-within {
+  border-bottom-color: var(--accent); }
+/* situation et type de bien : des choix en texte, pas une glissiere dans un plateau */
+.v5.aol4.aol6.aol11 .aol7-seg, .v5.aol4.aol6.aol11 .aol8-type {
+  background: none; border: 0; border-radius: 0; padding: 0; gap: 4px 20px; }
+.v5.aol4.aol6.aol11 .aol7-seg { justify-content: flex-start; width: auto; }
+.v5.aol4.aol6.aol11 .aol7-seg button, .v5.aol4.aol6.aol11 .aol8-type button {
+  flex: none; background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  color: var(--fg-3); padding: 6px 1px; }
+.v5.aol4.aol6.aol11 .aol7-seg button:hover, .v5.aol4.aol6.aol11 .aol8-type button:hover { color: var(--fg); }
+.v5.aol4.aol6.aol11 .aol7-seg button.on, .v5.aol4.aol6.aol11 .aol8-type button.on {
+  background: none; color: var(--accent); border-bottom-color: var(--accent); }
+/* prix et loyer estimes : un filet vert a gauche au lieu d'un encadre */
+.v5.aol4.aol6.aol11 .aol7-derived { padding: 2px 0 2px 14px; background: none; border: 0;
+  border-left: 3px solid var(--accent); border-radius: 0; }
+/* tiroir des hypotheses, recap mensuel et graphique : a plat */
+.v5.aol4.aol6.aol11 .aol6-drawer.aol-form { background: none; border: 0; border-radius: 0; overflow: visible; }
+.v5.aol4.aol11 .aol-detail .mric-month { padding: 20px 0; border: 0; border-top: 1px solid var(--border-soft); border-radius: 0; }
+.v5.aol4.aol11 .aol-detail canvas { border-radius: 0; }
+/* le graphique est cible par son id dans la v10 : on monte la specificite pareil */
+.v5.aol11 #mric-chart, .v5.aol11[data-theme="light"] #mric-chart { border-radius: 0; border: 0; background: none; }
+/* --- le formulaire du hero : UNE surface opaque qui le separe de la photo (demande Simon,
+       16/11). Pas de boite dans la boite : les questions restent des lignes a filets. --- */
+.v5.aol4.aol6.aol11 #mric-tool { background: var(--surface); border: 1px solid var(--line-2); border-radius: 4px; padding: 10px 30px 26px; }
+.v5.aol4.aol6.aol11 #mric-tool .aol7-step { border-top: 0; }
+/* un champ vide doit se lire comme un champ : trait plus visible, invite lisible */
+.v5.aol4.aol6.aol11 .aol8-combo input, .v5.aol4.aol6.aol11 .aol7-q .aol6-in { border-bottom-color: rgba(255,255,255,.35); }
+.v5.aol4.aol6.aol11[data-theme="light"] .aol8-combo input, .v5.aol4.aol6.aol11[data-theme="light"] .aol7-q .aol6-in { border-bottom-color: rgba(0,0,0,.3); }
+.v5.aol4.aol6.aol11 #mric-tool input::placeholder { color: #7D8BA6; font-weight: 600; opacity: 1; }
+/* --- duree, pistes A + B du canvas (16/11) : le point porte son etiquette et des chevrons,
+       la question est posee au-dessus de la barre, la bascule passe en repere sous la barre,
+       et une rangee d'annees permet de choisir sans glisser. --- */
+.v5.aol4.aol6.aol11 .aol6-timeline { margin-top: 30px; }
+.v5.aol4.aol6.aol11 .aol11-question { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin: 0 0 56px; }
+.v5.aol4.aol6.aol11 .aol11-question b { font-size: 16px; font-weight: 750; color: var(--fg); }
+.v5.aol4.aol6.aol11 .aol11-question span { font-size: 13px; color: var(--fg-4); text-align: right; }
+.v5.aol4.aol6.aol11 .aol6-track { border-radius: 6px; }
+/* bascule : un trait dans la barre, un repere sous l'echelle */
+.v5.aol4.aol6.aol11 .aol6-flag { top: 0; bottom: auto; height: 44px; display: block; }
+.v5.aol4.aol6.aol11 .aol6-flag::after { display: block; height: 44px; margin: 0; background: rgba(255,255,255,.55); }
+.v5.aol4.aol6.aol11 .aol6-flag b { position: absolute; top: 72px; left: 50%; transform: translateX(-50%); font-size: 11.5px; font-weight: 650; color: var(--fg-4); background: none; border: 0; padding: 0; white-space: nowrap; }
+.v5.aol4.aol6.aol11 .aol6-flag b::before { content: "bascule : "; }
+/* « Vous : N ans » au-dessus du point */
+.v5.aol4.aol6.aol11 .aol11-vous { position: absolute; top: -42px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 3; transition: left .15s; }
+.v5.aol4.aol6.aol11 .aol11-vous b { font-size: 13px; font-weight: 850; color: #0A0E18; background: #FFFFFF; padding: 5px 10px; border-radius: 4px; white-space: nowrap; }
+.v5.aol4.aol6.aol11 .aol11-vous::after { content: ""; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #FFFFFF; }
+/* le point : plus gros, blanc, chevrons graves */
+.v5.aol4.aol6.aol11 .aol6-range::-webkit-slider-thumb { width: 34px; height: 34px; margin-top: 5px; border: 0; background: #FFFFFF url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 12' fill='none' stroke='%230A0E18' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M6 1 2 6l4 5'/><path d='m14 1 4 5-4 5'/></svg>") center / 16px 10px no-repeat; box-shadow: 0 0 0 4px rgba(255,255,255,.18), 0 6px 18px rgba(0,0,0,.5); }
+.v5.aol4.aol6.aol11 .aol6-range::-moz-range-thumb { width: 34px; height: 34px; border: 0; background: #FFFFFF url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 12' fill='none' stroke='%230A0E18' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'><path d='M6 1 2 6l4 5'/><path d='m14 1 4 5-4 5'/></svg>") center / 16px 10px no-repeat; box-shadow: 0 0 0 4px rgba(255,255,255,.18), 0 6px 18px rgba(0,0,0,.5); }
+.v5.aol4.aol6.aol11 .aol6-scale { margin-bottom: 36px; }
+/* les annees : une rangee de cellules, la choisie en vert, celles ou louer gagne en orange */
+.v5.aol4.aol6.aol11 .aol10-dur { display: flex; gap: 0; margin-top: 0; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); }
+.v5.aol4.aol6.aol11 .aol10-dur .q { display: none; }
+.v5.aol4.aol6.aol11 .aol10-dur button { flex: 1; height: 52px; margin: 0; padding: 0 4px; border: 0; border-right: 1px solid var(--line-2); border-radius: 0; background: transparent; color: var(--fg-3); font-size: 15px; font-weight: 650; white-space: nowrap; }
+.v5.aol4.aol6.aol11 .aol10-dur button:last-child { border-right: 0; }
+.v5.aol4.aol6.aol11 .aol10-dur button:hover { color: var(--fg); background: rgba(255,255,255,.04); }
+.v5.aol4.aol6.aol11 .aol10-dur button.louer { color: var(--orange); }
+.v5.aol4.aol6.aol11 .aol10-dur button.on, .v5.aol4.aol6.aol11 .aol10-dur button.on.louer { background: var(--accent); color: var(--accent-ink); font-weight: 850; }
+.v5.aol4.aol6.aol11 .aol11-legende { margin: 10px 0 0; font-size: 12.5px; color: var(--fg-4); }
+@container aol (max-width: 739px) {
+  .v5.aol11 #aol11-gate-host { top: 40px; }
+  .v5.aol4.aol6.aol11 .aol11-question { flex-direction: column; gap: 4px; margin-bottom: 52px; }
+  .v5.aol4.aol6.aol11 .aol11-question span { text-align: left; }
+  .v5.aol4.aol6.aol11 .aol10-dur { flex-wrap: wrap; }
+  .v5.aol4.aol6.aol11 .aol10-dur button { flex: 1 0 33.33%; height: 48px; font-size: 14px; border-bottom: 1px solid var(--line-2); }
+  .v5.aol4.aol6.aol11 .aol10-dur button:nth-child(3n+1) { border-right: 0; }
+  .v5.aol4.aol6.aol11 #mric-tool { padding: 4px 16px 18px; border-radius: 0; border-left: 0; border-right: 0; }
+  .v5.aol11 #aol11-gate-host .mric-cta-lm { width: 100%; }
+  .v5.aol11 #aol11-gate-host .mric-gate-card { padding: 20px 18px 18px; }
+  .v5.aol11 .mric-gate-form { grid-template-columns: minmax(0, 1fr); }
+  .v5.aol11 .mric-gate-form input[type="email"] { grid-area: auto; }
+  .v5.aol11 .mric-gate-submit { grid-area: auto; width: 100%; padding: 0 16px; }
+  .v5.aol11 .mric-gate-consent, .v5.aol11 .mric-gate-status { grid-area: auto; }
+  .v5.aol11 .aol9-ledger.aol11-flou { max-height: 420px; }
+}
+
 /* ===== GATE — Prénom + email + RGPD pour recevoir le rapport ===== */
 .v5 .mric-gate-zone { position: relative; isolation: isolate; }
 .v5 .mric-gated-content {
@@ -2032,7 +2215,7 @@
 }
 </style>
 
-<div class="mric-calc v5 aol4 aol6" data-share-url="https://moneyradar.org/simulateur-acheter-ou-louer/">
+<div class="mric-calc v5 aol4 aol6 aol11" data-gate="soft" data-share-url="https://moneyradar.org/simulateur-acheter-ou-louer/">
 
   <section class="mric-hero"><div class="inn">
     <p class="aol-eyebrow">Immobilier · simulateur gratuit</p>
@@ -2052,7 +2235,7 @@
         <div class="aol7-q aol8-ville">
           <label for="aol8-ville" id="aol8-ville-lbl">Votre ville</label>
           <div class="aol8-combo">
-            <input type="text" id="aol8-ville" value="" placeholder="Toulouse, Lyon 3e, Montreuil…" autocomplete="off" autocapitalize="words" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="aol8-sugg">
+            <input type="text" id="aol8-ville" value="" placeholder="Tapez votre ville" autocomplete="off" autocapitalize="words" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="aol8-sugg">
             <ul class="aol8-sugg" id="aol8-sugg" role="listbox" hidden></ul>
           </div>
           <small id="aol8-ville-hint">Petite commune : ajoutez le département, par exemple « Mios 33 »</small>
@@ -2060,13 +2243,13 @@
         </div>
         <div class="aol7-q aol8-surface">
           <label for="mric-surface" id="aol8-surface-lbl">Sa surface</label>
-          <div class="aol6-in"><input type="text" id="mric-surface" value="" placeholder="45" inputmode="decimal" autocomplete="off"><span>m²</span></div>
+          <div class="aol6-in"><input type="text" id="mric-surface" value="" placeholder="Surface" inputmode="decimal" autocomplete="off"><span>m²</span></div>
           <div class="aol8-type" id="aol8-type" role="group" aria-label="Type de logement"><button type="button" class="on" data-t="appartement">Appartement</button><button type="button" data-t="maison">Maison</button></div>
           <input type="hidden" id="mric-typeLogement" value="appartement">
         </div>
         <div class="aol7-q" id="aol7-q-loyer">
           <label for="mric-loyer" id="aol7-loyer-lbl">Votre loyer</label>
-          <div class="aol6-in"><input type="text" id="mric-loyer" value="" placeholder="700" inputmode="decimal" autocomplete="off"><span>€ / mois</span></div>
+          <div class="aol6-in"><input type="text" id="mric-loyer" value="" placeholder="Loyer" inputmode="decimal" autocomplete="off"><span>€ / mois</span></div>
           <small id="aol7-loyer-hint">Hors charges</small>
         </div>
       </div>
@@ -2117,17 +2300,7 @@
         </div>
         <p class="aol9-diff" id="aol9-diff"></p>
         <p class="aol9-how" id="aol9-how"></p>
-        <div class="aol10-fin" id="aol10-fin">
-          <p class="aol6-k">Ce crédit est-il finançable&nbsp;?</p>
-          <div class="aol10-fin-row"><label for="aol10-rev">Revenus nets du foyer <small>par mois, avant impôt · facultatif</small></label><div class="aol6-in"><input type="text" id="aol10-rev" value="" placeholder="3 000" inputmode="decimal" autocomplete="off"><span>€ / mois</span></div></div>
-          <p class="aol10-fin-t" id="aol10-fin-t"></p>
-        </div>
         <p class="aol9-method-link"><a href="#aol-methode">Comment c'est calculé, et d'où viennent les chiffres →</a></p>
-        <div class="aol10-next" id="aol10-next">
-          <p class="aol6-k">Et maintenant&nbsp;?</p>
-          <div class="aol10-g achat"><a href="https://moneyradar.org/guides/taux-endettement/" target="_blank" rel="noopener"><span><b>Calculer votre taux d'endettement</b><small>Ce qu'une banque accepterait de vous prêter</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a><a href="https://moneyradar.org/immobilier/simulation-pret-immobilier/" target="_blank" rel="noopener"><span><b>Simuler votre prêt immobilier</b><small>Mensualité, durée et coût total du crédit</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a></div>
-          <div class="aol10-g placer"><a href="https://moneyradar.org/bourse/pea/meilleur-pea/" target="_blank" rel="noopener"><span><b>Placer la différence : meilleur PEA</b><small>Le placement en actions le plus avantageux fiscalement</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a><a href="https://moneyradar.org/assurance-vie/meilleure-assurance-vie/" target="_blank" rel="noopener"><span><b>Meilleure assurance vie</b><small>Fonds en euros et unités de compte, frais comparés</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a></div>
-        </div>
       </div>
 
       <button class="aol6-adjust" id="aol6-adjust" type="button" aria-expanded="false" aria-controls="aol6-drawer"><span>Ajuster les hypothèses</span><small>crédit, frais, charges, scénarios · des valeurs réalistes sont déjà remplies</small><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
@@ -2181,6 +2354,13 @@
       <p class="aol6-chart-legend">« Acheter » : la valeur du bien, moins les frais de revente et ce qu'il reste à rembourser, plus l'épargne placée. « Louer » : l'apport et les frais que vous n'avez pas dépensés, plus ce que vous placez chaque mois, le tout avec les intérêts.</p>
     </div>
 
+        <div class="aol10-next" id="aol10-next">
+          <p class="aol6-k">Et maintenant&nbsp;?</p>
+          <div class="aol10-g achat"><a href="https://moneyradar.org/guides/taux-endettement/" target="_blank" rel="noopener"><span><b>Calculer votre taux d'endettement</b><small>Ce qu'une banque accepterait de vous prêter</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a><a href="https://moneyradar.org/immobilier/simulation-pret-immobilier/" target="_blank" rel="noopener"><span><b>Simuler votre prêt immobilier</b><small>Mensualité, durée et coût total du crédit</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a></div>
+          <div class="aol10-g placer"><a href="https://moneyradar.org/bourse/pea/meilleur-pea/" target="_blank" rel="noopener"><span><b>Placer la différence : meilleur PEA</b><small>Le placement en actions le plus avantageux fiscalement</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a><a href="https://moneyradar.org/assurance-vie/meilleure-assurance-vie/" target="_blank" rel="noopener"><span><b>Meilleure assurance vie</b><small>Fonds en euros et unités de compte, frais comparés</small></span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></a></div>
+        </div>
+
+
     <div class="mric-month" id="mric-month">
       <div class="mric-month-title">Chaque mois, la première année</div>
       <div class="mric-month-col"><div class="k">Propriétaire</div><div class="big mric-teal" id="mric-m-proprio">—</div><div class="det" id="mric-m-proprio-det"></div></div>
@@ -2202,6 +2382,7 @@
       </div>
     </details>
 
+            <div id="aol11-gate-bottom"></div>
             <!-- ===== LEAD MAGNET : analyse achat/louer ===== -->
             <div class="mric-cta-lm mric-anim" id="mric-cta-lm">
               <div class="mric-gate-card mric-gate-inline" id="mric-gate-card">
@@ -2905,8 +3086,202 @@
     if(!consent){consentLabel.classList.add('mric-invalid');status.textContent='Vous devez accepter pour recevoir l\'analyse.';return;}
     var data=window.__mricAcheterData||{};
     var payload={email:email,consent:true,consentTimestamp:new Date().toISOString(),calculator:'acheter-ou-louer',inputs:data.inputs||{},results:data.results||{},meta:data.meta||{},company:(companyEl&&companyEl.value)||''};
-    btn.disabled=true;unlock(email);
-    fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}).then(function(res){if(!res.ok)console.warn('[MRIC lead] Worker HTTP '+res.status);}).catch(function(err){console.warn('[MRIC lead] Worker error:',err);});
+    btn.disabled=true;status.classList.add('mric-status-loading');status.textContent='Un instant\u2026';
+    var fini=false;
+    function ouvrir(){if(fini)return;fini=true;status.classList.remove('mric-status-loading');status.textContent='';unlock(email);}
+    function refuser(msg,adresse){if(fini)return;fini=true;status.classList.remove('mric-status-loading');status.textContent=msg;btn.disabled=false;if(adresse){emailEl.setAttribute('aria-invalid','true');emailEl.focus();}}
+    var garde=setTimeout(ouvrir,8000);
+    fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}).then(function(res){
+      if(res.ok){clearTimeout(garde);ouvrir();return;}
+      return res.json().catch(function(){return {};}).then(function(j){
+        clearTimeout(garde);
+        var r=j&&j.reason,sug=j&&j.suggestion,msg=null,adresse=false;
+        if(res.status===422){
+          adresse=true;
+          if(r==='typo'&&sug)msg='Vouliez-vous dire '+sug+'\u00a0? Corrigez l\'adresse, puis r\u00e9essayez.';
+          else if(r==='disposable')msg='Les adresses jetables ne re\u00e7oivent pas l\'analyse\u00a0: indiquez une adresse durable.';
+          else if(r==='no_mail')msg='Ce domaine ne re\u00e7oit pas d\'email. V\u00e9rifiez l\'adresse.';
+          else msg='Adresse email \u00e0 v\u00e9rifier.';
+        } else if(res.status===429)msg='Trop d\'envois pour cette adresse aujourd\'hui. R\u00e9essayez demain, ou avec une autre adresse.';
+        else if(res.status===400||res.status===403||res.status===413)msg='Envoi refus\u00e9. V\u00e9rifiez l\'adresse et la case \u00e0 cocher, puis r\u00e9essayez.';
+        if(msg)refuser(msg,adresse);else{console.warn('[MRIC lead] Worker HTTP '+res.status);ouvrir();}
+      });
+    }).catch(function(err){console.warn('[MRIC lead] Worker error:',err);clearTimeout(garde);ouvrir();});
   });
+})();
+</script>
+<script>
+/* ===== AOL v11 — verrou sur le detail personnalise ===== */
+(function(){
+  'use strict';
+  var ROOT = document.querySelector('.mric-calc.aol11');
+  if (!ROOT) return;
+  /* mode : attribut data-gate de la racine (un mot a changer dans le fragment),
+     surchargeable par window.MRIC_AOL_GATE_MODE */
+  var MODE = window.MRIC_AOL_GATE_MODE || ROOT.getAttribute('data-gate') || 'soft';
+  var CLE  = 'mric_aol_v11_unlocked';
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* deux places pour la carte email : sur le compte floute quand c'est verrouille,
+     en bas de page (son ancienne place) sinon */
+  var bloc = $('mric-cta-lm'), bas = $('aol11-gate-bottom');
+  var host = document.createElement('div'); host.id = 'aol11-gate-host';
+  (function(){
+    var why = ROOT.querySelector('.aol6-why'), ledger = why ? why.querySelector('.aol9-ledger') : null;
+    if (ledger) why.insertBefore(host, ledger);
+  })();
+  /* apres deverrouillage, la confirmation reste sous les chiffres qu'on vient d'ouvrir,
+     pas en bas de page : troisieme place, dans le flux, juste apres « Pourquoi ca bascule » */
+  var apres = document.createElement('div'); apres.id = 'aol11-gate-after';
+  (function(){ var how = $('aol9-how'); if (how) how.parentNode.insertBefore(apres, how.nextSibling); })();
+  function placer(verrouille){
+    if (!bloc) return;
+    var cible = libre ? apres : (verrouille ? host : bas);
+    if (cible && bloc.parentNode !== cible) cible.appendChild(bloc);
+  }
+  placer(false);
+
+  var personnalise = false;   // le visiteur a choisi une duree
+  var libre = false;          // deverrouille
+  try { libre = localStorage.getItem(CLE) === '1'; } catch (e) {}
+
+  var carte = $('mric-gate-card');
+  var titre = carte ? carte.querySelector('h3') : null;
+  var texte = carte ? carte.querySelector('p')  : null;
+  var label = $('mric-gate-submit-label');
+  var T0 = titre ? titre.innerHTML : '', P0 = texte ? texte.innerHTML : '', L0 = label ? label.textContent : '';
+
+  function ans(n){ return n + (n > 1 ? ' ans' : ' an'); }
+  function ville(){
+    /* #mric-insee porte le code INSEE : le nom lisible est dans le champ de saisie */
+    var e = $('aol8-ville'), v = e ? String(e.value || '').trim() : '';
+    return v ? v.replace(/\s*\(.*$/, '').replace(/\s+\d{1,3}$/, '') : '';
+  }
+  function duree(){ var s = $('mric-horizon'); return s ? (parseInt(s.value, 10) || 0) : 0; }
+  function reponseAffichee(){ var r = $('aol6-res'); return !!r && !r.hidden; }
+
+  function floutes(){
+    /* on verrouille le detail chiffre, jamais le titre, le bloc financement,
+       la methode ni les liens « Et maintenant » (maillage interne). */
+    var c = [ $('aol6-you-t'), ROOT.querySelector('.aol9-ledger'), $('aol9-diff'), $('aol9-how'),
+              $('mric-month'), ROOT.querySelector('#aol-table .mric-table-full'),
+              ROOT.querySelector('.aol-detail .mric-chart-wrap') ];
+    if (MODE === 'hard') c.push($('aol6-sentence'), $('aol9-range'));
+    return c;
+  }
+
+  /* --- duree : question, etiquette du point, 20 ans, legende --- */
+  var slider = $('mric-horizon'), track = ROOT.querySelector('.aol6-track'), dur = $('aol10-dur');
+  var vous = null;
+  if (track) {
+    var q = document.createElement('div'); q.className = 'aol11-question';
+    q.innerHTML = '<b>Combien de temps pensez-vous rester\u00a0?</b><span>Glissez le point blanc, ou choisissez une dur\u00e9e</span>';
+    track.parentNode.insertBefore(q, track);
+    vous = document.createElement('div'); vous.className = 'aol11-vous'; vous.innerHTML = '<b></b>';
+    track.appendChild(vous);
+  }
+  if (dur && slider && !dur.querySelector('button[data-y="20"]')) {
+    var b20 = document.createElement('button'); b20.type = 'button'; b20.dataset.y = '20'; b20.textContent = '20 ans et plus';
+    b20.addEventListener('click', function(){ slider.value = '20'; slider.dispatchEvent(new Event('input', { bubbles: true })); });
+    dur.appendChild(b20);
+    var leg = document.createElement('p'); leg.className = 'aol11-legende';
+    leg.textContent = 'En orange\u00a0: \u00e0 cette dur\u00e9e, louer l\u2019emporte.';
+    dur.parentNode.insertBefore(leg, dur.nextSibling);
+  }
+  function majDuree(){
+    if (!slider) return;
+    var hz = parseInt(slider.value, 10) || 0, max = parseInt(slider.max, 10) || 30, min = parseInt(slider.min, 10) || 1;
+    if (vous) { vous.style.left = ((hz - min) / (max - min) * 100) + '%'; vous.querySelector('b').textContent = 'Vous\u00a0: ' + ans(hz); }
+    var flag = $('aol6-flag'), fn = $('aol6-flag-n');
+    var bascule = (flag && !flag.hidden && fn) ? (parseInt(fn.textContent, 10) || null) : null;
+    if (dur) dur.querySelectorAll('button').forEach(function(b){
+      var y = parseInt(b.dataset.y, 10);
+      b.classList.toggle('on', y === hz);
+      b.classList.toggle('louer', !!bascule && y < bascule);
+    });
+  }
+  var phrase = $('aol6-sentence');
+  if (phrase && 'MutationObserver' in window) new MutationObserver(majDuree).observe(phrase, { childList: true, subtree: true });
+
+  var vuePoussee = false;
+  function pousser(nom){
+    try { window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({ event: nom, calculator: 'acheter-ou-louer' }); } catch (e) {}
+  }
+
+  var CADENAS = '<svg class="aol11-cadenas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="1"></rect>' +
+    '<path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
+  function majTextes(verrouille){
+    if (!carte) return;
+    if (verrouille) {
+      var v = ville(), d = duree();
+      if (titre) titre.innerHTML = CADENAS + '<span>Votre résultat sur ' + ans(d) + ' est prêt</span>';
+      if (texte) texte.innerHTML = "L'écart en euros, le compte des deux côtés et le tableau année par année" +
+        (v ? ', pour ' + v : '') + '.';
+      if (label) label.textContent = 'Afficher';
+    } else {
+      if (titre) titre.innerHTML = T0;
+      if (texte) texte.innerHTML = P0;
+      if (label) label.textContent = L0;
+    }
+  }
+
+  function maj(){
+    /* le verrou tombe des que la reponse s'affiche (decision Simon, 16/11) :
+       'soft' floute le detail chiffre, 'hard' floute aussi le verdict */
+    var verrouille = (MODE !== 'off') && !libre && reponseAffichee();
+    floutes().forEach(function(el){ if (el) el.classList.toggle('aol11-flou', verrouille); });
+    var mini = $('aol-m-e'); if (mini) mini.classList.toggle('aol11-masque', verrouille);
+    /* tant que c'est verrouille, la ligne « Vous : N ans » et les pastilles de duree ne
+       donneraient rien a voir : on les retire, le curseur de la frise suffit (Simon, 16/11) */
+    var you = ROOT.querySelector('.aol6-you'); if (you) you.classList.toggle('aol11-retire', verrouille);
+    majDuree();
+    /* en mode dur, la barre mobile ne doit pas laisser fuiter la bascule */
+    var miniV = $('aol-m-v');
+    if (miniV) miniV.classList.toggle('aol11-masque', verrouille && MODE === 'hard');
+    placer(verrouille);
+    majTextes(verrouille);
+    if (verrouille && !vuePoussee) { vuePoussee = true; pousser('mric_aol_verrou_vu'); }
+  }
+
+  function marquer(){ if (personnalise) return; personnalise = true; maj(); }
+
+  if (slider) slider.addEventListener('input', function(){ marquer(); maj(); });
+  ROOT.querySelectorAll('#aol10-dur button').forEach(function(b){ b.addEventListener('click', function(){ marquer(); maj(); }); });
+  var tab = $('aol-table');
+  if (tab) tab.addEventListener('toggle', function(){ if (tab.open) marquer(); });
+
+  /* la reponse apparait ou se met a jour */
+  var res = $('aol6-res');
+  if (res && 'MutationObserver' in window) {
+    new MutationObserver(maj).observe(res, { attributes: true, attributeFilter: ['hidden'] });
+  }
+
+  /* deverrouillage : on guette le message de confirmation du formulaire */
+  var ok = $('mric-gate-success');
+  if (ok && 'MutationObserver' in window) {
+    new MutationObserver(function(){
+      if (ok.classList.contains('mric-show') && !libre) {
+        libre = true;
+        try { localStorage.setItem(CLE, '1'); } catch (e) {}
+        maj();
+        pousser('mric_aol_verrou_ouvert');
+      }
+    }).observe(ok, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  maj();
+  window.MRIC_AOL_GATE = {
+    mode: MODE,
+    verrouille: function(){ return !libre && personnalise; },
+    reinitialiser: function(){
+      try { localStorage.removeItem(CLE); } catch (e) {}
+      libre = false; personnalise = false; vuePoussee = false;
+      if (carte) carte.style.display = '';
+      if (ok) ok.classList.remove('mric-show');
+      maj();
+    }
+  };
 })();
 </script>
